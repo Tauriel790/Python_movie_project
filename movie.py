@@ -177,6 +177,8 @@ print(f"\nFinal columns retained: {data.columns.to_list()}")
 data = pd.read_csv('movies_cleaned.csv')
 data.head(10)
 
+data['release_date'] = pd.to_datetime(data['release_date'])
+
 # before going on with the analysis of insights ans EDA (exploratory data analysis), feature enginireen are conducted in order to have a more
 # complete analysis of the dataset. 6 feature enginireeng are used
 
@@ -186,6 +188,10 @@ df_financial['profit'] = df_financial['revenue'] - df_financial['budget']
 df_financial['roi'] = ((df_financial['revenue'] - df_financial['budget'])/
                        df_financial['budget'] * 100).round(2)
 df_financial['is_profitable'] = df_financial ['profit'] > 0
+
+# now we merge them together
+data = data.merge(df_financial[['title', 'release_date', 'profit', 'roi','is_profitable']],
+                  on = ['title', 'release_date'], how = 'left')
 
 # 2) adding temporal features to analyze trends within the data
 
