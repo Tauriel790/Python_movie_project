@@ -178,9 +178,42 @@ data = pd.read_csv('movies_cleaned.csv')
 data.head(10)
 
 # before going on with the analysis of insights ans EDA (exploratory data analysis), feature enginireen are conducted in order to have a more
-# complete analysis of the dataset. 6 feature enginireeng are used:
+# complete analysis of the dataset. 6 feature enginireeng are used
 
-# 
+# 1) adding financial metrics in order to answer the most important question of this project: "What makes a blockbuster profitable?"
+df_financial = data[data[['budget', 'revenue']].notna().all(axis = 1)].copy() 
+df_financial['profit'] = df_financial['revenue'] - df_financial['budget']
+df_financial['roi'] = ((df_financial['revenue'] - df_financial['budget'])/
+                       df_financial['budget'] * 100).round(2)
+df_financial['is_profitable'] = df_financial ['profit'] > 0
+
+# 2) adding temporal features to analyze trends within the data
+
+# for example, we can add "decade" to see the changes over a period of time of the industry
+data['release_date'] = pd.to_datetime(data['release_date'])
+data['decade'] = (data['release_year'] // 10) * 10
+
+# we can add also season, to see if the release time of the movie matters
+seasons_map = {12: 'Winter', 1: 'Winter', 2: 'Winter',
+               3: 'Spring', 4: 'Spring', 5: 'Spring',
+               6: 'Summer', 7: 'Summer', 8: 'Summer',
+               9: 'Fall', 10: 'Fall', 11: 'Fall'}
+data['release_month'] = data['release_date'].dt.month
+data['release_season'] = data['release_month'].map(seasons_map)
+
+# 3) then, we can add a feature to identify the blockbuster movies
+revenue_with_data = data[data['revenue'].notna()].copy()
+blockbuster_threshold = revenue_with_data['revenue'].quantile(0.90)
+revenue_with_data['is_blockbuster'] = revenue_with_data['revenue'] >= blockbuster_threshold
+
+data = data.merge(revenue_with_data[['title', 'release_date', 'is_blockbuster']],
+                  on = ['title', 'release_date'], how = 'left')
+
+print(f"Blockbuster indicator added (threshold: $ {blockbuster_threshold.round(2)})")
+
+# now we save the new data
+data.to_csv('movies_with_features.csv', index = False)
+
 # --------------------------------------------- EDA (Exploratory data analysis) ----------------------------------------------------------------
 
 
