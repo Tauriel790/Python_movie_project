@@ -46,6 +46,9 @@ data = data.dropna(subset = ['title', 'release_date'])
 # we extract the year, in case it is needed in the next analysis
 data['release_year'] = data['release_date'].dt.year
 
+# it is better to filter unrealistic release years
+data = data[(data['release_year'] >= 1900) & (data['release_year'] <= 2025)]
+
 # Now we show the changes
 data.columns.to_list()
 
@@ -67,6 +70,9 @@ safe_impute = ['runtime', 'popularity', 'vote_average', 'vote_count']
 for col in safe_impute:
     data[col] = data[col].fillna(data[col].median())
 
+# Filter extreme runtime values (so only reasonable movie lengths are retained)
+data = data[(data['runtime'] >= 40) & (data['runtime'] <= 300)]
+
 # budget and revenues zeros has also to be fixed
 data[['budget', 'revenue']] = data[['budget', 'revenue']].replace(0, np.nan)
 
@@ -74,8 +80,11 @@ data[['budget', 'revenue']] = data[['budget', 'revenue']].replace(0, np.nan)
 data = data[(data['budget'].isna()) | (data['budget'] >= 1000)]
 data = data[(data['revenue'].isna()) | (data['revenue'] >= 1000)]
 
-# now, we verify that there are no more missing values in the dataset. If everything worked correctly it should return 0
-data.isna().sum().sum()
+# now, we verify that there are no more missing values in the dataset. \\
+# Budget and revenues Nan are intentionally kept for flexible analysis
+missing_check = data.isna().sum()
+print("Missing values per column:")
+print(missing_check[missing_check > 0])
 
 # it is better to check if there are also duplicate data before going on with the analysis
 # first we check generally the duplicates in the dataset
@@ -128,14 +137,50 @@ for col in numeric_columns:
     zero_percent = 100 * zero_count / len (data)
     print(f"{col}: {zero_count} zeros ({zero_percent:.2f}%)")
 
-# in the dataset the number of rows (observations) and columns remaining after the cleaning are (45434, 17)
-data.shape
 
-# now we show the list of all the variables retained in the data before the analysis 
-data.columns.to_list()
+# --------------------------------------------- Final summary of the data cleaned --------------------------------------------------------------
+print ("\n" + "="*60)
+print("Final cleaned dataset summary")
+print("="*60)
 
-# then it is better to save the cleaned data
+# dataset shape
+print(f"\nFinal dataset shape: {data.shape}")
+
+# missing values summary that were retained for further analysis
+print(f"\nBudget missing: {data['budget'].isna().sum()} ({100*data['budget'].isna().sum()/len(data):.1f}%)")
+print(f"Revenue missing: {data['revenue'].isna().sum()} ({100*data['revenue'].isna().sum()/len(data):.1f}%)")
+print(f"Movies with BOTH budget and revenue: {data[['budget', 'revenue']].notna().all(axis=1).sum()}")
+
+# check of the quality of the data
+print (f"\nData Quality checks:")
+print(f"  - Release year range: {data['release_year'].min():.0f} to {data['release_year'].max():.0f}")
+print(f"  - Runtime range: {data['runtime'].min():.0f} to {data['runtime'].max():.0f} minutes")
+print(f"  - Vote average range: {data['vote_average'].min():.1f} to {data['vote_average'].max():.1f}")
+print(f"  - Unique genres: {data['primary_genre'].nunique()}")
+
+# top genres found in the dataset
+print (f"\nThe top 5 Primary Genres are:")
+print (data['primary_genre'].value_counts().head())
+
+# now, we save the cleaned data with NaN retained
+print("\n" + "="*60)
+print("Note: Budget and Revenue contain NaN values still")
+print("These will be handled contextually during EDA and insights analysis")
 data.to_csv('movies_cleaned.csv', index = False)
 
-# --------------------------------------------- EDA (Exploratory data analysis) ------------------------------------------------------
+# now we show the final columns list of the dataset
+print(f"\nFinal columns retained: {data.columns.to_list()}")
+
+# --------------------------------------------------- feature engineering ----------------------------------------------------------------------
+
+# load the clean dataset
+data = pd.read_csv('movies_cleaned.csv')
+data.head(10)
+
+# before going on with the analysis of insights ans EDA (exploratory data analysis), feature enginireen are conducted in order to have a more
+# complete analysis of the dataset. 6 feature enginireeng are used:
+
+# 
+# --------------------------------------------- EDA (Exploratory data analysis) ----------------------------------------------------------------
+
 
