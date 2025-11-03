@@ -6,6 +6,9 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 import ast
 from ast import literal_eval
+import scipy
+import json
+import math
 
 # -------------------------------------------------- Data cleaning and Preparation ---------------------------------------------------
 # load the dataset movie_metadata.csv into the environment
@@ -31,7 +34,7 @@ data.isna().sum().sort_values(ascending = False).head(20)
 
 # columns that are irrelevant for the analysis must be dropped
 columns_to_drop = ['adult','belongs_to_collection', 'homepage','poster_path', 'tagline', 'video', 'spoken_languages', 'backdrop_path',
-                   'id', 'imdb_id', 'original_title', 'original_language', 'overview', 'status']
+                   'imdb_id', 'original_title', 'original_language', 'overview', 'status']
 data = data.drop(columns = columns_to_drop, errors = 'ignore')
 
 # then, the columns name are printed again to ensure that everything worked out correctly
@@ -162,20 +165,10 @@ print(f"  - Unique genres: {data['primary_genre'].nunique()}")
 print (f"\nThe top 5 Primary Genres are:")
 print (data['primary_genre'].value_counts().head())
 
-# now, we save the cleaned data with NaN retained
-print("\n" + "="*60)
-print("Note: Budget and Revenue contain NaN values still")
-print("These will be handled contextually during EDA and insights analysis")
-data.to_csv('movies_cleaned.csv', index = False)
-
 # now we show the final columns list of the dataset
 print(f"\nFinal columns retained: {data.columns.to_list()}")
 
 # --------------------------------------------------- feature engineering ----------------------------------------------------------------------
-
-# load the clean dataset
-data = pd.read_csv('movies_cleaned.csv')
-data.head(10)
 
 data['release_date'] = pd.to_datetime(data['release_date'])
 
@@ -185,12 +178,10 @@ data['release_date'] = pd.to_datetime(data['release_date'])
 # 1) adding financial metrics in order to answer the most important question of this project: "What makes a blockbuster profitable?"
 df_financial = data[data[['budget', 'revenue']].notna().all(axis = 1)].copy() 
 df_financial['profit'] = df_financial['revenue'] - df_financial['budget']
-df_financial['roi'] = ((df_financial['revenue'] - df_financial['budget'])/
-                       df_financial['budget'] * 100).round(2)
 df_financial['is_profitable'] = df_financial ['profit'] > 0
 
 # now we merge them together
-data = data.merge(df_financial[['title', 'release_date', 'profit', 'roi','is_profitable']],
+data = data.merge(df_financial[['title', 'release_date', 'profit','is_profitable']],
                   on = ['title', 'release_date'], how = 'left')
 
 # 2) adding temporal features to analyze trends within the data
@@ -217,9 +208,49 @@ data = data.merge(revenue_with_data[['title', 'release_date', 'is_blockbuster']]
 
 print(f"Blockbuster indicator added (threshold: $ {blockbuster_threshold.round(2)})")
 
-# now we save the new data
+# now we save the data
+data[json_columns].map(type).head()
+data.to_csv('movie_with_features.csv', index = False)
+
+# now we save the new data with PICKLE to retain the json files as list, otherwise they will become strings
+data[json_columns].map(type).head()
+data.to_pickle('movies_with_features.pkl')
+
+# we will also add a csv file for compatibility
 data.to_csv('movies_with_features.csv', index = False)
 
+data[['genres', 'production_companies', 'production_countries']].map(type).head()
+
 # --------------------------------------------- EDA (Exploratory data analysis) ----------------------------------------------------------------
+# first we have to analyze the distribution of the variables within the data through bar plots and density plots to have a general view of the
+# data itself
 
+df = pd.read_pickle("movies_with_features.pkl")
+df.head()
+df.info()
 
+# variables to use for the histograms 
+dist_variables = ['budget', 'revenue', 'profit', 'runtime',
+                  'popularity', 'vote_average', 'vote_count',
+                  'release_year']
+
+n = len(dist_variables)
+cols = 3
+rows = math.ceil(n/cols)
+
+plt.figure(figsize = (18, rows*4))
+
+for i, col in enumerate(dist_variables, 1):
+    ax = plt.subplot(rows, cols, i)
+    series = df[col].dropna()
+
+    # use log transformation for heavy right skewed variables
+    log_transfor = series.min() > 0 and series.skew() > 1.2
+    
+    sns.histplot(series, kde = True, ax = ax, bins = 50, log_scale = log_transfor)
+    ax.set_title(col, fontsize = 12)
+    ax.set_xlabel (col)
+    ax.set_ylabel ("Count")
+
+plt.tight_layout()
+plt.show()
