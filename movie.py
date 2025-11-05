@@ -9,6 +9,7 @@ from ast import literal_eval
 import scipy
 import json
 import math
+import seaborn as sns
 
 # -------------------------------------------------- Data cleaning and Preparation ---------------------------------------------------
 # load the dataset movie_metadata.csv into the environment
@@ -34,7 +35,7 @@ data.isna().sum().sort_values(ascending = False).head(20)
 
 # columns that are irrelevant for the analysis must be dropped
 columns_to_drop = ['adult','belongs_to_collection', 'homepage','poster_path', 'tagline', 'video', 'spoken_languages', 'backdrop_path',
-                   'imdb_id', 'original_title', 'original_language', 'overview', 'status']
+                   'imdb_id', 'original_title', 'overview', 'status']
 data = data.drop(columns = columns_to_drop, errors = 'ignore')
 
 # then, the columns name are printed again to ensure that everything worked out correctly
@@ -124,14 +125,25 @@ for col in json_columns:
         data[col] = parsed.apply(lambda v:v if isinstance(v, list) else [])
 
 # now we verify at each of this columns now contains a list
-data[json_columns].applymap(type).head()
+data[json_columns].apply(lambda x: x.apply(type)).head()
 
 # and now the content of the parsed json columns
 data[['genres', 'production_companies', 'production_countries']].head()
 
-# now, simple genre list will be extract
-data['genres_list'] = data['genres'].apply(lambda x: [d.get('name') for d in x if 'name' in d] if isinstance(x, list) else [])
-data['primary_genre'] = data['genres_list'].apply(lambda x: x[0] if x else 'Unknown')
+# then, names from json columns will be extract as comma separated for better readability
+def extract_names(value):
+    if not isinstance(value, list) or len(value) == 0:
+        return pd.NA
+    names = [str(item.get('name', '')) for item in value if isinstance(item, dict) and 'name' in item]
+    return ', '.join(names) if names else pd.NA
+
+# create new readable columns with extracted names
+data['genres_str'] = data['genres'].apply(extract_names)
+data['companies_str'] = data['production_companies'].apply(extract_names)
+data['countries_str'] = data['production_countries'].apply(extract_names)
+
+# the primary genre of the movies will be extract for further analysis purposes
+data['primary_genre'] = data['genres_str'].apply(lambda x: x.split(', ')[0] if pd.notna(x) else 'Unknown')
 
 # now, i drop
 # check the 0 values in the columns of the dataset, to see if they need some fixing
@@ -208,26 +220,23 @@ data = data.merge(revenue_with_data[['title', 'release_date', 'is_blockbuster']]
 
 print(f"Blockbuster indicator added (threshold: $ {blockbuster_threshold.round(2)})")
 
-# now we save the data
-data[json_columns].map(type).head()
-data.to_csv('movie_with_features.csv', index = False)
+# first we drop the original json columns to keep only the readable string versions
+data = data.drop(columns = json_columns, errors = 'ignore')
 
-# now we save the new data with PICKLE to retain the json files as list, otherwise they will become strings
-data[json_columns].map(type).head()
-data.to_pickle('movies_with_features.pkl')
+# now we verify the final dataset structure
+print(data.columns.to_list())
+data[['genres_str', 'companies_str', 'countries_str', 'primary_genre']].dtypes
 
-# we will also add a csv file for compatibility
+# then, before starting the analysis, the cleaned data are saved as CSV
 data.to_csv('movies_with_features.csv', index = False)
-
-data[['genres', 'production_companies', 'production_countries']].map(type).head()
 
 # --------------------------------------------- EDA (Exploratory data analysis) ----------------------------------------------------------------
 # first we have to analyze the distribution of the variables within the data through bar plots and density plots to have a general view of the
 # data itself
 
-df = pd.read_pickle("movies_with_features.pkl")
-df.head()
-df.info()
+data = pd.read_csv("movies_with_features.csv")
+data.head()
+data.info()
 
 # variables to use for the histograms 
 dist_variables = ['budget', 'revenue', 'profit', 'runtime',
@@ -238,19 +247,240 @@ n = len(dist_variables)
 cols = 3
 rows = math.ceil(n/cols)
 
-plt.figure(figsize = (18, rows*4))
+fig, axes = plt.subplots(rows, cols, figsize = (18, rows*4))
+axes = axes.flatten()
 
-for i, col in enumerate(dist_variables, 1):
-    ax = plt.subplot(rows, cols, i)
-    series = df[col].dropna()
+for i, col in enumerate(dist_variables):
+    ax = axes[i]
+    series = data[col].dropna()
 
     # use log transformation for heavy right skewed variables
-    log_transfor = series.min() > 0 and series.skew() > 1.2
+    log_transform = series.min() > 0 and series.skew() > 1.2
     
-    sns.histplot(series, kde = True, ax = ax, bins = 50, log_scale = log_transfor)
-    ax.set_title(col, fontsize = 12)
-    ax.set_xlabel (col)
-    ax.set_ylabel ("Count")
+    if log_transform:
+        sns.histplot(series, kde = True, ax = ax, bins = 50, log_scale = 10)
+        ax.set_title(f"{col} (log scale)", fontsize = 12, fontweight = 'bold')
+    else:
+        sns.histplot(series, kde = True, ax = ax, bins = 50)
+        ax.set_title(col, fontsize = 12, fontweight = 'bold')
+    
+    ax.set_xlabel(col, fontsize = 10)
+    ax.set_ylabel("Count", fontsize = 10)
+    ax.tick_params(axis = 'both', labelsize = 9)
+
+# it is better to hyde any unused subplots 
+for j in range (len(dist_variables), len(axes)):
+    axes[j].set_visible(False)
+
+# since at first some lables were overlapping in the image, the issue was fixed by adding a pad of 2
+plt.tight_layout(pad = 2.0)
+plt.show()
+
+# after the histograms, also density plots can be used to show the distribution of the variables
+fig, axes = plt.subplots(rows, cols, figsize = (18, rows *4))
+axes = axes.flatten()
+
+for i, col in enumerate(dist_variables):
+    ax = axes[i]
+    series = data[col].dropna()
+
+    #log transform for heavy right skewed variables
+    log_transform = series.min() > 0 and series.skew() > 1.2
+
+    if log_transform:
+        log_series = np.log10(series)
+        sns.kdeplot(log_series, ax = ax, fill = True, color = 'steelblue', alpha = 0.6, linewidth = 2)
+        ax.set_title(f"{col} Density (log scale)", fontsize = 12, fontweight = 'bold')
+        ax.set_xlabel(f"log10({col})", fontsize = 10)
+
+        # also the median line will be added to the plot
+        median_val = np.log10(series.median())
+        ax.axvline(median_val, color = 'red', linestyle = '--', linewidth = 1.5, alpha = 0.7, label = 'Median')
+    else:
+        sns.kdeplot(series, ax = ax, fill = True, color = 'steelblue', alpha = 0.6, linewidth = 2)
+        ax.set_title(f"{col} Density", fontsize = 12, fontweight = 'bold')
+        ax.set_xlabel(col, fontsize = 10)
+
+        median_val = series.median()
+        ax.axvline(median_val, color = 'red', linestyle = '--', linewidth = 1.5, alpha = 0.7, label = 'Median')
+
+    ax.set_ylabel ("Density", fontsize = 10)
+    ax.tick_params(axis = 'both', labelsize = 9)
+    ax.legend(fontsize = 8)
+
+for j in range(i + 1, len(axes)):
+    axes[j].set_visible(False)
+
+plt.tight_layout(pad = 2.0)
+plt.savefig('density_plots.png', dpi = 300, bbox_inches = 'tight')
+plt.show()
+
+# core blockbuster analysis -----------------------------------------------------------------------------------------------
+# A first question that can be analyzed is the following and its the most important one
+# in this project (the most critical relationship)
+
+# 1) Does spending more on a movie guarantee higher revenue? --------------------------------------------------------------
+
+# to show this relationship, a scatter plot with a trend line will be used
+plt.close('all')
+
+plt.figure(figsize = (12, 8))
+
+clean_data = data[['budget', 'revenue']].dropna()
+
+plt.scatter(clean_data['budget'], clean_data['revenue'], alpha = 0.5, color = 'steelblue', label = 'Movies')
+
+# calculate the trend line
+log_budget = np.log10(clean_data['budget'])
+log_revenue = np.log10(clean_data['revenue'])
+
+# fit linear regression on log scale
+z = np.polyfit(log_budget, log_revenue, 1)
+p = np.poly1d(z)
+
+# create the trend line points
+budget_range = np.logspace(np.log10(clean_data['budget'].min()),
+                           np.log10(clean_data['budget'].max()), 100)
+trend_revenue = 10 ** p(np.log10(budget_range))
+
+# now we plot the trend line
+plt.plot(budget_range, trend_revenue, color = 'red', linewidth = 2, linestyle = '--', label = f'Trend (slope = {z[0]:.2f})')
+
+plt.xscale('log')
+plt.yscale('log')
+plt.xlabel('Budget ($)')
+plt.ylabel('Revenue ($)')
+plt.title('Budget vs Revenue: is there a formula for success?', fontsize = 14, fontweight = 'bold')
+plt.legend(fontsize = 10)
+plt.grid(True, alpha = 0.3)
+plt.tight_layout()
+plt.show()
+
+# the scatter plot reveals a strong positive correlation (slope = 0.78) between the budget and the revenue of the movies, indicating that
+# higher budgets generally lead to higher revenues. However, the relationship shows diminishing returns, meaning that doubling the budget 
+# doesn't automatically double the revenue. The wide scatter underlines the fact that the budget alone doesn't guarantee the succes of the 
+# movie. Many high budget films underperform and some low budget ones overperform and becomes suprise hits. This suggest that there is no
+# simple formula for blockbuster success. Other factors like quality, timing, and audience appeal metter when considering the success of
+# a film. 
+
+# after the plotting is is better to show also these key insights to better understand the relationship already analyzed
+
+# correlation
+correlation = clean_data['budget'].corr(clean_data['revenue'])
+print (f"The correlation coefficient is: {correlation.round(2)}")      
+
+# ROI (return of investment) analysis: the most remarkable finding in the dramatic divergence between the mean ROI (963.5%)
+# and the median ROI (145.4%). This 818 percentage points gap is not a statistical anomaly, it's a defining characteristic of the film
+# industry's economics. 
+# - The average ROI of 963.5% suggests that movies generate approximately 10.6 times their production budget in revenue.
+#   On the surface, this appears extraordinarily profitable, implying that for every dollar invested, the industry returns over 
+#   ten dollars. However, this figure is misleading when examined in isolation. 
+# - The median ROI of 145.4% paints a more realistic picture. This indicates that the typical film generates 2.5 times its budget,
+#   still profitable, but far less spectacula than the mean suggests.
+
+# This disparity between mean and median reveals a fundamental truth about the film industry: it operates on a highly skewed distribution. 
+# A small number of extraordinary successes—think Avatar, Titanic, or Marvel blockbusters—generate returns so astronomical that they dramatically 
+# inflate the average. These outliers can achieve ROIs of 1,000%, 2,000%, or even higher, particularly when low-budget films become unexpected cultural phenomena.
+clean_data['roi'] = (clean_data['revenue'] - clean_data['budget'])/ clean_data['budget'] * 100
+print(f"Average ROI: {clean_data['roi'].mean().round(2)}")
+print(f"Median ROI: {clean_data['roi'].median().round(2)}")
+
+# now we analyze the budget categories included in the plotù
+low_budget = clean_data[clean_data['budget'] < 1e6]
+mid_budget = clean_data[(clean_data['budget'] >= 1e6) & (clean_data['budget'] < 5e7)]
+high_budget = clean_data[clean_data['budget'] >= 5e7]
+
+print(f"\nLow budget films (<$1M): {len(low_budget)}, have an average revenue of: ${low_budget['revenue'].mean()/1e6} M")
+print(f"Mid budget films ($1M - $50M): {len(mid_budget)}, average revenue: ${mid_budget['revenue'].mean()/1e6} M")
+print(f"High budget films (> $50M): {len(high_budget)}, average revenue: ${high_budget['revenue'].mean()/1e6} M")
+
+# 2) Which budget ranges are most profitable (Budget vs Profit - ROI perspective)?
+plt.close('all')
+
+fig, (ax1, ax2) = plt.subplots(1, 2, figsize = (20, 8))
+
+# left plot: budget vs profit scatter plot
+clean_profit_data = data[['budget', 'profit']].dropna()
+
+# separate profitable and unprofitable movies for better visualization
+profitable = clean_profit_data[clean_profit_data['profit'] > 0]
+unprofitable = clean_profit_data[clean_profit_data['profit'] <= 0]
+
+ax1.scatter(profitable['budget'], profitable['profit'],
+            alpha = 0.5, color = 'seagreen', label = 'Profitable Movies', s = 20)
+
+ax1.scatter(unprofitable['budget'], unprofitable['profit'],
+            alpha = 0.5, color = 'red', label = 'Unprofitable Movies', s = 20)
+
+# add trend line to the profit
+log_budget_p = np.log10(profitable['budget'])
+log_profit = np.log10(profitable['profit'])
+
+z_profit = np.polyfit(log_budget_p, log_profit, 1)
+p_profit = np.poly1d(z_profit)
+
+budget_range_p = np.logspace(np.log10(clean_profit_data['budget'].min()),
+                             np.log10(clean_profit_data['budget'].max()), 100)
+
+trend_profit = 10 ** p_profit(np.log10(budget_range_p))
+
+ax1.plot(budget_range_p, trend_profit, color = "red", linewidth = 2,
+         linestyle = '--', label = f"Trend (slope = {z_profit[0]:.2f})")
+
+# zero profit line
+ax1.axhline (y= 0, color = 'black', linestyle = '-', linewidth = 1, alpha = 0.5, label = 'Break-even')
+
+ax1.set_xscale('log')
+ax1.set_yscale('log')
+ax1.set_xlabel('Budget ($)', fontsize = 12)
+ax1.set_ylabel('Profit ($)', fontsize = 12)
+ax1.set_title('Budget vs Profit: Which budgets are more profitable?',
+              fontsize = 14, fontweight = 'bold')
+
+ax1.legend(fontsize = 10, loc = 'upper left')
+ax1.grid(True, alpha = 0.3)
+
+# exlude extreme negatives for better visualization
+ax1.set_ylim(1e3, 1e9)
+
+# RIGHT PLOTS: ROI by budget category (by using a box plot)
+budget_categories = []
+roi_values = []
+
+for _, row in clean_data.iterrows():
+    if row['budget'] < 1e6:
+        budget_categories.append('Low\n(<$1M)')
+        roi_values.append(row['roi'])
+    elif row['budget'] < 5e7:
+        budget_categories.append('Mid\n($1M - $50M)')
+        roi_values.append(row['roi'])
+    else:
+        budget_categories.append('High\n(>$50M)')
+        roi_values.append(row['roi'])
+
+roi_df = pd.DataFrame({'Budget Category': budget_categories, 'ROI (%)': roi_values})
+
+# now we create the boxplot
+sns.boxplot(x = 'Budget Category', y = 'ROI (%)', data = roi_df, ax = ax2,
+            order = ['Low\n(<$1M)', 'Mid\n($1M - $50M)', 'High\n(>$50M)'],
+            palette = ['lightcoral', 'lightblue', 'lightgreen'],
+            showfliers = False)  # hide outliers for cleaner visualization
+
+ax2.axhline (y = 0, color = 'red', linestyle = '--', linewidth = 1, alpha = 0.7, label = 'Break-even')
+ax2.set_ylabel ('ROI (%)', fontsize = 12)
+ax2.set_xlabel ('Budget Category', fontsize = 12)
+ax2.set_title ('ROI distribution by Budget Category', fontsize = 14, fontweight = 'bold')
+ax2.legend(fontsize = 10)
+ax2.grid(True, alpha = 0.3, axis = 'y')
+
+# the range of the y axis will be limited to clip extreme outliers just for visibility purposes
+ax2.set_ylim (-100, 2000)
 
 plt.tight_layout()
 plt.show()
+
+# There is no single "most profitable" budget range—each serves a different strategic purpose. The film industry thrives 
+# on this diversity, balancing consistent mid-budget returns, the scale of blockbusters, and the occasional low-budget 
+# phenomenon. The slope of 0.60 in the profit trend line captures this reality: spending more increases profit, but with 
+# diminishing returns. Success depends not just on budget size, but on creative execution, marketing, timing, and often, luck.
+
