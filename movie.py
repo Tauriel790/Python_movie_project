@@ -687,7 +687,119 @@ plt.show()
 # So, in the end, quality has weak but positive effect on the revenue, meaning that it's not the only factor that contributes to the success of a film
 
 # 4) Is there an optimal movie length for box office success? ----------------------------------------------------------------------------------------------------------------------------------------------
-plt.close('all')
+plt.close ('all')
 
 # prepare the clean data for plotting
 runtime_revenue = data [['runtime', 'revenue']].dropna()
+
+# we identify the blockbusters
+blockbuster_threshold = runtime_revenue['revenue'].quantile(0.90)
+runtime_revenue['is_blockbuster'] = runtime_revenue['revenue'] >= blockbuster_threshold
+
+print (f"\nBlockbusters (top 10% revenue): {runtime_revenue['is_blockbuster'].sum()}")
+print (f"Blockbuster threshold: ${blockbuster_threshold/1e6:.1f}M")
+
+# create runtime categories
+def categorize_runtime(runtime):
+    if runtime < 90:
+        return 'Short\n(<90 min)'
+    elif runtime < 120:
+        return 'Standard\n(90 - 120 min)'
+    elif runtime < 150:
+        return 'Long\n(120 - 150 min)'
+    else:
+        return 'Epic\n(>=150 min)'
+    
+runtime_revenue['runtime_category'] = runtime_revenue['runtime'].apply(categorize_runtime)
+
+# FIRST THE SCATTERPLOT
+fig, (ax1, ax2) = plt.subplots(1, 2, figsize = (20, 8))
+
+regular_movies = runtime_revenue[~runtime_revenue['is_blockbuster']]
+blockbusters = runtime_revenue[runtime_revenue['is_blockbuster']]
+
+ax1.scatter(regular_movies['runtime'],
+            regular_movies['revenue'],
+            alpha = 0.5,
+            color = 'steelblue',
+            s = 50,
+            edgecolor = 'white',
+            linewidth = 0.5,
+            label = 'All movies')
+
+# now we highlight the blockbusters in the plot
+ax1.scatter(blockbusters['runtime'],
+            blockbusters['revenue'],
+            alpha = 0.7,
+            color = 'red',
+            s = 100,
+            edgecolors = 'darkred',
+            linewidth = 1,
+            marker = '*',
+            label = f"Blockbusters (n = {len(blockbusters)})")
+
+# add again a trend line as we did before with the other scatter plots
+z_runtime = np.polyfit(runtime_revenue['runtime'],
+                       np.log10(runtime_revenue['revenue']), 1)
+p_runtime = np.poly1d(z_runtime)
+runtime_range = np.linspace(runtime_revenue['runtime'].min(),
+                            runtime_revenue['runtime'].max(), 100)
+
+trend_runtime = 10 ** p_runtime(runtime_range)
+
+ax1.plot(runtime_range, trend_runtime,
+         color = 'darkgreen', linewidth = 2.5, linestyle = '--',
+         label = f"Trend (slope = {z_runtime[0]:.3f})")
+
+# vertical lines for categories boundaries
+ax1.axvline(x = 90, color = 'orange', linestyle = ':', linewidth = 1.5, alpha = 0.6)
+ax1.axvline(x = 120, color = 'orange', linestyle = ':', linewidth = 1.5, alpha = 0.6)
+ax1.axvline(x = 150, color = 'orange', linestyle = ':', linewidth = 1.5, alpha = 0.6)
+
+ax1.set_yscale ('log')
+ax1.set_xlabel('Runtime (minutes)', fontsize = 12, fontweight = 'bold')
+ax1.set_ylabel('Revenue ($)', fontsize = 12, fontweight = 'bold')
+ax1.set_title('Scatter plot: Runtime vs Revenue', fontsize = 13, fontweight = 'bold')
+ax1.grid(True, alpha = 0.3)
+
+# correlation
+correlation_runtime = runtime_revenue['runtime'].corr(runtime_revenue['revenue'])
+ax1.text(0.05, 0.05, f'Correlation: {correlation_runtime:.3f}\n = {len(runtime_revenue)}',
+         transform = ax1.transAxes, fontsize = 11,
+         verticalalignment = 'bottom',
+         horizontalalignment = 'center',
+         bbox = dict(boxstyle = 'round', facecolor = 'lightyellow', alpha = 0.9, edgecolor = 'black', linewidth = 1.5))
+
+print (correlation_runtime)
+
+ax1.legend(fontsize = 10, loc = 'upper left')
+
+# now the bar plot
+category_order = ['Short\n(<90 min)', 'Standard\n(90 - 120 min)', 'Long\n(120 - 150 min)', 'Epic\n(>=150 min)']
+avg_revenue_runtime = runtime_revenue.groupby('runtime_category')['revenue'].mean() / 1e6
+avg_revenue_runtime = avg_revenue_runtime.reindex(category_order)
+
+colors_runtime = ['blue', 'violet', 'purple', 'pink']
+bars = ax2.bar(category_order, avg_revenue_runtime, color = colors_runtime, alpha = 0.8,
+               edgecolor = 'black', linewidth = 1.5)
+
+# bar's labels 
+for bar in bars:
+    height = bar.get_height()
+    ax2.text(bar.get_x() + bar.get_width()/2., height,
+             f'${height:.1f}M',
+             ha = 'center', va = 'bottom', fontsize = 11, fontweight = 'bold')
+    
+ax2.set_xlabel('Runtime Category', fontsize = 12, fontweight = 'bold')
+ax2.set_ylabel('Average revenue ($ Millions)', fontsize = 12, fontweight = 'bold')
+ax2.set_title('Bar Plot: Average Revenue by Runtime', fontsize = 13, fontweight = 'bold')
+ax2.grid(True, alpha = 0.3, axis = 'y')
+
+# title 
+fig.suptitle('Runtime vs Revenue: Does Movie length affects box office success?',
+             fontsize = 16, fontweight = 'bold', y = 0.98)
+
+plt.tight_layout(rect = [0, 0, 1, 0.96])
+plt.show()
+
+# INSIGHTS ABOUT THIS RELATIONSHIP
