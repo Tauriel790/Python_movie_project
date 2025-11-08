@@ -802,4 +802,90 @@ fig.suptitle('Runtime vs Revenue: Does Movie length affects box office success?'
 plt.tight_layout(rect = [0, 0, 1, 0.96])
 plt.show()
 
-# INSIGHTS ABOUT THIS RELATIONSHIP
+# now, we go on with the statistical analysis
+# correlation
+if correlation_runtime < 0.3:
+    strength = "weak"
+elif correlation_runtime < 0.7:
+    strength = "moderate"
+else:
+    strength = "strong"
+
+print (f"This indicates a {strength} positive relationship")
+
+# now, we analyze the optimal runtime based on the data we have by analyzing the revenue by 15 minute bins
+runtime_bins = pd.cut(runtime_revenue['runtime'],
+                      bins = range (40, 305, 15),
+                      labels = [f"{i} - {i+15}" for i in range (40, 290, 15)])
+runtime_revenue['runtime_bin'] = runtime_bins
+
+bin_analysis = runtime_revenue.groupby('runtime_bin', observed = True)['revenue'].agg(['mean', 'median', 'count'])
+bin_analysis = bin_analysis[bin_analysis['count'] >= 20]
+bin_analysis_sorted = bin_analysis.sort_values('mean', ascending = False)
+
+# top 5 most profitable runtime ranges
+for i, (bin_name, row) in enumerate (bin_analysis_sorted.head().iterrows(), 1):
+    print (f"{i}. {bin_name} min: Mean = ${row['mean']/1e6:>6,.1f}M, Median = ${row['median']/1e6:>6,.1f}M, n = {int(row['count']):>3}")
+
+# bottom 5 lowest revenue runtime ranges
+for i, (bin_name, row) in enumerate (bin_analysis_sorted.tail().iterrows(), 1):
+    print (f"{i}. {bin_name} min: Mean = ${row['mean']/1e6:>6,.1f}M, Median = ${row['median']/1e6:>6,.1f}M, n = {int(row['count']):>3}")
+
+# now we analyze the blockbuster patterns about runtime
+blockbuster_runtimes = runtime_revenue[runtime_revenue['is_blockbuster']]['runtime']
+regular_runtimes = runtime_revenue[~runtime_revenue['is_blockbuster']]['runtime']
+
+# so now we do a runtime comparison
+print(f"\nBlockbuster films (top 10%):")
+print(f"Mean runtime: {blockbuster_runtimes.mean().round()} minutes")
+print(f"Median runtime: {blockbuster_runtimes.median().round()} minutes")
+print(f"Range: {blockbuster_runtimes.min()} - {blockbuster_runtimes.max()} minutes")
+
+# now we do the same comparison also for regular films
+print(f"\nRegular films:")
+print(f"Mean runtime: {regular_runtimes.mean().round()} minutes")
+print(f"Median runtime: {regular_runtimes.median().round()} minutes")
+print(f"Range: {regular_runtimes.min()} - {regular_runtimes.max()} minutes")
+
+# now we calculate also the revenues of the films by category of runtime
+# - SHORT RUNTIME FILMS: They have an average revenue of 73 Million dollars
+short_avg= runtime_revenue[runtime_revenue['runtime_category'] == 'Short\n(<90 min)']['revenue'].mean()/1e6
+print(f"The average revenue for films of short runtime is: $ {short_avg.round()} M")
+
+# - STANDARD RUNTIME FILMS: They have an average revenue of 88 Million dollars
+standard_avg= runtime_revenue[runtime_revenue['runtime_category'] == 'Standard\n(90 - 120 min)']['revenue'].mean()/1e6
+print(f"The average revenue for films of standard runtime is: $ {standard_avg.round()} M")
+
+# - LONG RUNTIME FILMS: They have an average revenue of 172 Million dollars
+long_avg= runtime_revenue[runtime_revenue['runtime_category'] == 'Long\n(120 - 150 min)']['revenue'].mean()/1e6
+print(f"The average revenue for films of long runtime is: $ {long_avg.round()} M")
+
+# - EPIC RUNTIME FILMS: They have an average revenue of 245 Million dollars
+epic_avg= runtime_revenue[runtime_revenue['runtime_category'] == 'Epic\n(>=150 min)']['revenue'].mean()/1e6
+print(f"The average revenue for films of epic runtime is: $ {epic_avg.round()} M")
+
+# now in addition we print out also the names of the 5 longest movies in the dataset (highest runtimes) and of the 
+# bottom 5 shortest films by runtime
+
+runtime_with_titles = data[['title', 'runtime', 'revenue']].dropna()
+
+# - TOP 5 LONGEST FILMS
+longest_movies = runtime_with_titles.nlargest(5, 'runtime')
+for i, (idx, row) in enumerate(longest_movies.iterrows(), 1):
+    print (f"{i}. {row['title']}")
+    print (f"Runtime: {row['runtime']:.0f} minutes | Revenue: ${row['revenue']/1e6:.1f}M")
+
+# - BOTTOM 5 SHORTEST MOVIES
+shortest_movies = runtime_with_titles.nsmallest(5, 'runtime')
+for i, (idx, row) in enumerate(shortest_movies.iterrows(), 1):
+    print(f"{i}. {row['title']}")
+    print(f"Runtime: {row['runtime']:.0f} minutes | Revenue: ${row['revenue']/1e6:.1f}M")
+
+# INSIGHTS 
+# So, as it can be seen from the analysis, in general films with higher runtimes tend to have higher revenues and so films that become blockbusters
+# are usually the ones that have a longer duration. From the correlation analysis, we see that there is a positive correlation between the runtime of films
+# and the revenue but this correlation is not so strong, meaning that is only one of the factors that contributes to make a blockbuster but not the only one as 
+# we have seen in previous analysis.
+
+
+
