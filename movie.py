@@ -484,3 +484,5 @@ plt.show()
 # phenomenon. The slope of 0.60 in the profit trend line captures this reality: spending more increases profit, but with 
 # diminishing returns. Success depends not just on budget size, but on creative execution, marketing, timing, and often, luck.
 
+# 3) Vote average (rating) vs Revenue
+
