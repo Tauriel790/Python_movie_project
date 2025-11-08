@@ -9,7 +9,6 @@ from ast import literal_eval
 import scipy
 import json
 import math
-import seaborn as sns
 
 # -------------------------------------------------- Data cleaning and Preparation ---------------------------------------------------
 # load the dataset movie_metadata.csv into the environment
@@ -180,6 +179,12 @@ print (data['primary_genre'].value_counts().head())
 # now we show the final columns list of the dataset
 print(f"\nFinal columns retained: {data.columns.to_list()}")
 
+# we are not eliminating outliers (blockbuster films) during the data cleaning process because they can represent legitimate
+# box office phenomena (films like Avatar, Titanic ...) and are essential to understanding the film industy's 'blockbuster model
+# Removing them would mispresent how the industry actually operates. However, we will analyze the data both with and without outliers
+# to understand their impact on our findings
+
+
 # --------------------------------------------------- feature engineering ----------------------------------------------------------------------
 
 data['release_date'] = pd.to_datetime(data['release_date'])
@@ -315,11 +320,11 @@ plt.tight_layout(pad = 2.0)
 plt.savefig('density_plots.png', dpi = 300, bbox_inches = 'tight')
 plt.show()
 
-# core blockbuster analysis -----------------------------------------------------------------------------------------------
+# core blockbuster analysis -------------------------------------------------------------------------------------------------------------------
 # A first question that can be analyzed is the following and its the most important one
 # in this project (the most critical relationship)
 
-# 1) Does spending more on a movie guarantee higher revenue? --------------------------------------------------------------
+# 1) Does spending more on a movie guarantee higher revenue? (BUDGET VS REVENUE) --------------------------------------------------------------
 
 # to show this relationship, a scatter plot with a trend line will be used
 plt.close('all')
@@ -394,7 +399,7 @@ print(f"\nLow budget films (<$1M): {len(low_budget)}, have an average revenue of
 print(f"Mid budget films ($1M - $50M): {len(mid_budget)}, average revenue: ${mid_budget['revenue'].mean()/1e6} M")
 print(f"High budget films (> $50M): {len(high_budget)}, average revenue: ${high_budget['revenue'].mean()/1e6} M")
 
-# 2) Which budget ranges are most profitable (Budget vs Profit - ROI perspective)?
+# 2) Which budget ranges are most profitable (Budget vs Profit - ROI perspective)? ----------------------------------------------------------------
 plt.close('all')
 
 fig, (ax1, ax2) = plt.subplots(1, 2, figsize = (20, 8))
@@ -484,5 +489,205 @@ plt.show()
 # phenomenon. The slope of 0.60 in the profit trend line captures this reality: spending more increases profit, but with 
 # diminishing returns. Success depends not just on budget size, but on creative execution, marketing, timing, and often, luck.
 
-# 3) Vote average (rating) vs Revenue
+# 3) Do better rated movies make more money? (VOTE AVERAGE (RATING) VS REVENUE) -----------------------------------------------------------------
+plt.close(all)
 
+ # so, first we prepare the data for the visualization
+rating_revenue = data[['vote_average', 'revenue']].dropna()
+
+# we first identify the data that would be considered outliers (for comparison purposes only)
+Q1 = rating_revenue['revenue'].quantile(0.25)
+Q3 = rating_revenue['revenue'].quantile(0.75)
+IQR = Q3 - Q1
+upper_bound = Q3 + 1.5 * IQR
+
+# we then flag outliers for analysis purposes (but we will not remove them)
+rating_revenue['is_outlier'] = rating_revenue['revenue'] > upper_bound
+print (f"high - revenue outliers: {rating_revenue['is_outlier'].sum()} ({100 * rating_revenue['is_outlier'].sum()/len(rating_revenue):.1f}%)")
+
+# now we create two datasets, one with all the data and one without the outliers
+data_all = rating_revenue.copy()
+data_filtered = rating_revenue[~rating_revenue['is_outlier']].copy()
+
+# this is be the function that categorize the 
+def categorize_ratings(rating):
+    if rating < 5.0:
+        return 'Poor\n(<5.0)'
+    elif rating < 6.5:
+        return 'Average\n(5.0 - 6.5)'
+    elif rating < 7.5:
+        return 'Good\n(6.5 - 7.5)'
+    else:
+        return 'Excellent\n(>= 7.5)'
+    
+# ----------- ANALYSIS WITH ALL THE DATA
+fig, (ax1, ax2) = plt.subplots(1, 2, figsize = (20, 8))
+
+# first we create the SCATTERPLOT --------- 
+ax1.scatter(data_all['vote_average'],
+            data_all['revenue'],
+            alpha = 0.5,
+            color = 'steelblue',
+            s = 50,
+            edgecolors = 'white',
+            linewidth = 1,
+            label = 'All movies')
+
+# now we highlight outliers
+outliers_only = data_all[data_all['is_outlier']]
+ax1.scatter(outliers_only['vote_average'],
+            outliers_only['revenue'],
+            alpha = 0.7,
+            color = 'red',
+            s = 100,
+            edgecolors = 'darkred',
+            linewidth = 1,
+            marker = '*',
+            label = f"Blockbuster (n = {len(outliers_only)})")
+
+# then we add a trend line inside the scatter plot
+z_all = np.polyfit(data_all['vote_average'],
+                   np.log10(data_all['revenue']), 1)
+p_all = np.poly1d(z_all)
+
+vote_range = np.linspace(0, 10, 100)
+trend_all = 10 ** p_all(vote_range)
+
+ax1.plot(vote_range, trend_all,
+         color = 'darkgreen', linewidth = 2.5, linestyle = '--',
+         label = f"Trend (slope = {z_all[0]:.2f})")
+
+ax1.set_yscale('log')
+ax1.set_xlabel('Vote Average (Rating)', fontsize = 12, fontweight = 'bold')
+ax1.set_ylabel('Revenue ($)', fontsize = 12, fontweight = 'bold')
+ax1.set_title('Scatter plot: Rating vs revenue (all data)', fontsize = 13, fontweight = 'bold')
+ax1.set_xlim(0, 10)
+ax1.legend(fontsize = 10, loc = 'lower right')
+ax1.grid(True, alpha = 0.3)
+
+# calculate and display correlation
+correlation_all = data_all['vote_average'].corr(data_all['revenue'])
+ax1.text(0.05, 0.95, f"Correlation: {correlation_all:.3f}\n = {len(data_all)}",
+         transform = ax1.transAxes, fontsize = 11,
+         verticalalignment = 'top',
+         bbox = dict(boxstyle = 'round', facecolor = 'lightblue', alpha = 0.8))
+
+# then we plot on the same image also a BAR PLOT to show the relationship --------
+data_all['category'] = data_all['vote_average'].apply(categorize_ratings)
+category_order = ['Poor\n(<5.0)', 'Average\n(5.0 - 6.5)', 'Good\n(6.5 - 7.5)', 'Excellent\n(>= 7.5)']
+
+avg_revenue_all = data_all.groupby('category')['revenue'].mean() / 1e6
+avg_revenue_all = avg_revenue_all.reindex(category_order)
+
+colors = ['red', 'orange', 'yellow', 'green']
+bars = ax2.bar(category_order, avg_revenue_all, color = colors, alpha = 0.8,
+               edgecolor = 'black', linewidth = 1.5)
+
+# add the labels of the values on the bars
+for bar in bars:
+    height = bar.get_height()
+    ax2.text(bar.get_x() + bar.get_width()/2., height,
+             f'${height:.1f}M',
+             ha = 'center', va = 'bottom', fontsize = 11, fontweight = 'bold')
+    
+fig.suptitle('Rating vs Revenue (data with outliers)',
+             fontsize = 16, fontweight = 'bold', y = 0.98)
+
+plt.tight_layout(rect = [0, 0, 1, 0.96])
+plt.show()
+
+# -------- ANALYSIS WITHOUT OUTLIERS  -----------------------
+fig, (ax1, ax2) = plt.subplots(1, 2, figsize = (20, 8))
+
+# first we create the SCATTERPLOT --------- 
+ax1.scatter(data_filtered['vote_average'],
+            data_filtered['revenue'],
+            alpha = 0.5,
+            color = 'seagreen',
+            s = 50,
+            edgecolors = 'white',
+            linewidth = 0.5,
+            )
+
+# then we add a trend line inside the scatter plot
+z_filtered = np.polyfit(data_filtered['vote_average'],
+                   np.log10(data_filtered['revenue']), 1)
+p_filtered = np.poly1d(z_all)
+
+trend_filtered = 10 ** p_filtered(vote_range)
+
+ax1.plot(vote_range, trend_filtered,
+         color = 'darkred', linewidth = 2.5, linestyle = '--',
+         label = f"Trend (slope = {z_filtered[0]:.2f})")
+
+ax1.set_yscale('log')
+ax1.set_xlabel('Vote Average (Rating)', fontsize = 12, fontweight = 'bold')
+ax1.set_ylabel('Revenue ($)', fontsize = 12, fontweight = 'bold')
+ax1.set_title('Scatter plot: Rating vs revenue (filtered data)', fontsize = 13, fontweight = 'bold')
+ax1.set_xlim(0, 10)
+ax1.legend(fontsize = 10)
+ax1.grid(True, alpha = 0.3)
+
+# calculate and display correlation
+correlation_filtered = data_filtered['vote_average'].corr(data_filtered['revenue'])
+ax1.text(0.05, 0.95, f"Correlation: {correlation_filtered:.3f}\n = {len(data_filtered)}",
+         transform = ax1.transAxes, fontsize = 11,
+         verticalalignment = 'top',
+         bbox = dict(boxstyle = 'round', facecolor = 'lightgreen', alpha = 0.8))
+
+# then we plot on the same image also a BAR PLOT to show the relationship --------
+data_filtered['category'] = data_filtered['vote_average'].apply(categorize_ratings)
+
+avg_revenue_filtered = data_filtered.groupby('category')['revenue'].mean() / 1e6
+avg_revenue_filtered = avg_revenue_filtered.reindex(category_order)
+
+colors = ['red', 'orange', 'yellow', 'green']
+bars = ax2.bar(category_order, avg_revenue_filtered, color = colors, alpha = 0.8,
+               edgecolor = 'black', linewidth = 1.5)
+
+# add the labels of the values on the bars
+for bar in bars:
+    height = bar.get_height()
+    ax2.text(bar.get_x() + bar.get_width()/2., height,
+             f'${height:.1f}M',
+             ha = 'center', va = 'bottom', fontsize = 11, fontweight = 'bold')
+    
+fig.suptitle('Sensitivity analysis: Rating vs Revenue (without outliers)',
+             fontsize = 16, fontweight = 'bold', y = 0.98)
+
+plt.tight_layout(rect = [0, 0, 1, 0.96])
+plt.show()
+
+# RESULTS:
+# this analysis examined the relationship between the vote average and the revenue. The question was: Does the audience vote translate
+# into commercial success?
+
+# Two main analysis were conducted:
+# 1. with outliers: 
+#    - SCATTERPLOT: in this the scatter plot revealed a weak positive correlation between rating and revenue with an almost flat line (slope = 0.02).
+#    this indicates that while better rated films tend to earn more on average, the relationship is surprisingly weak.
+#    - BOXPLOT: it provides a clearer aggregate view, which shows a progressive increase
+# The weak correlation  is a significant finding, not a weakness in the analysis. It reveals that the film industry operates on factors beyond quality.
+
+# 2. without outliers:
+# When high-revenue outliers are removed using the IQR method (n=418 blockbusters excluded), the 
+# results become COUNTER-INTUITIVE and reveal why outliers must be retained:
+
+# WHY THIS HAPPENS - The Outlier Paradox:
+# This counterintuitive result occurs because the "outliers" we removed ARE the successful 
+# high-rated films (Avatar, Titanic, The Dark Knight, etc.). After removing them, what remains 
+# in the "Excellent" category are predominantly:
+#   - Art-house films with limited theatrical releases
+#   - Independent films with strong critical praise but small audiences
+#   - Foreign films with limited distribution
+#   - Festival darlings that never achieved mainstream success
+
+# so the outliers must be retained in our analysis
+
+# So, in the end, quality has weak but positive effect on the revenue, meaning that it's not the only factor that contributes to the success of a film
+
+# 4) Is there an optimal movie length for box office success? ----------------------------------------------------------------------------------------------------------------------------------------------
+plt.close('all')
+
+# prepare the clean data for plotting
+runtime_revenue = data [['runtime', 'revenue']].dropna()
