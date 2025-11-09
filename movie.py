@@ -1,6 +1,6 @@
 # first, libraries needed for the project are loaded into the environment
-import csv
 import pandas as pd
+import csv
 import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
@@ -390,7 +390,7 @@ clean_data['roi'] = (clean_data['revenue'] - clean_data['budget'])/ clean_data['
 print(f"Average ROI: {clean_data['roi'].mean().round(2)}")
 print(f"Median ROI: {clean_data['roi'].median().round(2)}")
 
-# now we analyze the budget categories included in the plotù
+# now we analyze the budget categories included in the plot
 low_budget = clean_data[clean_data['budget'] < 1e6]
 mid_budget = clean_data[(clean_data['budget'] >= 1e6) & (clean_data['budget'] < 5e7)]
 high_budget = clean_data[clean_data['budget'] >= 5e7]
@@ -887,5 +887,127 @@ for i, (idx, row) in enumerate(shortest_movies.iterrows(), 1):
 # and the revenue but this correlation is not so strong, meaning that is only one of the factors that contributes to make a blockbuster but not the only one as 
 # we have seen in previous analysis.
 
+# 5) Does higher popularity translate to higher revenue? (POPULARITY VS REVENUE) ------------------------------------------------------------------------------------------
+plt.close('all')
 
+# prepare as always the data for the plotting
+popularity_revenue = data[['popularity', 'revenue']].dropna()
+
+fig, (ax1, ax2) = plt.subplots(1, 2, figsize = (20, 8))
+
+# identify blockbusters using the same approach as before
+blockbuster_threshold = popularity_revenue['revenue'].quantile(0.90)
+popularity_revenue['is_blockbuster'] = popularity_revenue['revenue'] >= blockbuster_threshold
+
+print(f"\nBlockbusters (top 10% revenue): {popularity_revenue['is_blockbuster'].sum()}")
+print(f"Blockbusters threshold: ${blockbuster_threshold/1e6:.1f}M")
+
+# popularity categories
+def categorize_popularity (popularity):
+    if popularity < 5:
+        return 'Low\n(<5)'
+    elif popularity < 15:
+        return 'Medium\n(5 - 15)'
+    elif popularity < 30:
+        return 'High\n(15 - 30)'
+    else:
+        return 'Very High\n(>=30)'
+    
+popularity_revenue['popularity_category'] = popularity_revenue['popularity'].apply(categorize_popularity)
+
+# SCATTER PLOT
+regular_movies = popularity_revenue[~popularity_revenue['is_blockbuster']]
+blockbusters = popularity_revenue[popularity_revenue['is_blockbuster']]
+
+ax1.scatter(regular_movies['popularity'],
+            regular_movies['revenue'],
+            alpha = 0.5,
+            color = 'steelblue',
+            s = 50,
+            edgecolor = 'white',
+            linewidth = 0.5,
+            label = 'All movies')
+
+# highlight blockbusters
+ax1.scatter(blockbusters['popularity'],
+            blockbusters['revenue'],
+            alpha = 0.7,
+            color = 'orange',
+            s = 100,
+            edgecolors = 'darkred',
+            linewidth = 1,
+            marker = '*',
+            label = f"Blockbusters (n = {len(blockbusters)})")
+
+# trend line
+z_pop = np.polyfit(np.log10(popularity_revenue['popularity'] + 1),
+                   np.log10(popularity_revenue['revenue']), 1)
+p_pop = np.poly1d(z_pop)
+
+pop_range = np.logspace(np.log10(popularity_revenue['popularity'].min() + 1),
+                        np.log10(popularity_revenue['popularity'].max() + 1), 100)
+
+trend_pop = 10 ** p_pop(np.log10(pop_range))
+
+ax1.plot(pop_range, trend_pop, color = 'darkgreen',
+         linewidth = 2.5, linestyle = '--',
+         label = f"Trend (slope = {z_pop[0]:.2f})")
+
+# vertical lines for category boundaries
+ax1.axvline(x = 5, color = 'orange', linestyle = ':', linewidth = 1.5, alpha = 0.6)
+ax1.axvline(x = 15, color = 'orange', linestyle = ':', linewidth = 1.5, alpha = 0.6)
+ax1.axvline(x = 30, color = 'orange', linestyle = ':', linewidth = 1.5, alpha = 0.6)
+
+ax1.set_xscale('log')
+ax1.set_yscale('log')
+ax1.set_xlabel('Popularity score', fontsize = 12, fontweight = 'bold')
+ax1.set_ylabel('Revenue ($)', fontsize = 12, fontweight = 'bold')
+ax1.set_title('Scatter plot: Popularity vs Revenue', fontsize = 13, fontweight = 'bold')
+ax1.grid(True, alpha = 0.3)
+
+# correlation
+correlation_pop = popularity_revenue['popularity'].corr(popularity_revenue['revenue'])
+ax1.text(0.05, 0.95, f"Correlation: {correlation_pop:.3f}\n = {len(popularity_revenue)}",
+         transform = ax1.transAxes, fontsize = 11,
+         verticalalignment = 'top',
+         bbox = dict(boxstyle = 'round', facecolor = 'lightblue', alpha = 0.9,
+                     edgecolor = 'black', linewidth = 1.5))
+
+ax1.legend(fontsize = 10, loc = 'lower right')
+
+# BAR PLOT
+category_order = ['Low\n(<5)', 'Medium\n(5 - 15)', 'High\n(15 - 30)', 'Very High\n(>=30)']
+avg_revenue_pop = popularity_revenue.groupby('popularity_category')['revenue'].mean() / 1e6
+avg_revenue_pop = avg_revenue_pop.reindex(category_order)
+
+colors_pop = ['lightcoral', 'orange', 'yellow', 'green']
+bars = ax2.bar(category_order, avg_revenue_pop, color = colors_pop, alpha = 0.8,
+               edgecolor = 'black', linewidth = 1.5)
+
+# bar plot labels
+for bar in bars:
+    height = bar.get_height()
+    ax2.text(bar.get_x() + bar.get_width()/2., height,
+             f"${height:.1f}M", ha = 'center', va = 'bottom', fontsize = 12, fontweight = 'bold')
+
+ax2.set_xlabel('Popularity Category', fontsize = 12, fontweight = 'bold')
+ax2.set_ylabel('Average Revenue ($ Millions)', fontsize = 12,fontweight = 'bold')
+ax2.set_title('Bar Plot: Average Revenue by popularity', fontsize = 13, fontweight = 'bold')
+ax2.grid(True, alpha = 0.3, axis = 'y')
+
+# figure title
+fig.suptitle('Popularity vs Revenue: Does Buzz Equal box office success?',
+             fontsize = 16, fontweight = 'bold', y = 0.98)
+
+plt.tight_layout(rect = [0, 0, 1, 0.96])
+plt.show()
+
+# INSIGHTS
+# Unlike previous analysis of budget, rating, and runtime, popularity represents a fundamentally different metric that captures marketing reach,
+# social media buzz, star power and audience anticipation before and during a film's release.
+# FINDINGS:
+# - the correlation coefficient of 0.401 represents a moderate positive relationship between popularity and revenue, in respect of the previous ones. So, popularity for now,
+#   is one of the strongest single predictor of commercial success among the variables aalyzed. 
+
+# THE BLOCKBUSTER CONCENTRATION EFFECT
 
