@@ -1010,4 +1010,253 @@ plt.show()
 #   is one of the strongest single predictor of commercial success among the variables aalyzed. 
 
 # THE BLOCKBUSTER CONCENTRATION EFFECT
+# - the scatter plot visualzation reveals that blockbusters (orange stars) are heavily concentrated in the high popularity regions of the plot.
+#   this concentration pattern indicates that popularity is not just correlated with revenue, its practically mostly a prerequisite for blockbuster success.
+# IMPLICATION:
+# Studios seeking blockbuster returns must invest in generating pre - release buzz and mantaining high visibility throughout the theatrical run. 
+# But the scatter also shows great variations meaning that while there is a mild/strong correlation between popularity and revenue, it is not always the case,
+# so, the blockbuster effect is not always guaranteed.
+
+# TEMPORAL PATTERNS ------------------------------
+# 6) Does the release year affects the success of a film and how has the film industry evolved over time? ----------------------------------------------------------------------------------------------------------------------------------
+plt.close('all')
+
+# prepare the data before plotting
+decade_data = data[['decade', 'revenue', 'budget', 'vote_average', 'is_blockbuster']].dropna()
+
+# now, we filter for decades with sufficient data (50 in our case)
+decade_counts = decade_data['decade'].value_counts()
+valid_decades = decade_counts[decade_counts >= 50].index
+decade_data = decade_data[decade_data['decade'].isin(valid_decades)]
+
+# decade statistics
+decade_stats = decade_data.groupby('decade').agg({
+    'revenue': ['mean', 'count'],
+    'budget': 'mean',
+    'vote_average': 'mean',
+    'is_blockbuster': lambda x: (x.sum() / len(x) * 100) if len(x) > 0 else 0}).reset_index()
+
+decade_stats.columns = ['decade', 'avg_revenue', 'count', 'avg_budget', 'avg_rating', 'blockbuster_rate']
+decade_stats['avg_revenue'] = decade_stats['avg_revenue'] / 1e6
+decade_stats['avg_budget'] = decade_stats['avg_budget'] / 1e6
+
+# VISUALIZATION:
+fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots (2, 2, figsize = (18, 12))
+decade_colors = plt.cm.viridis(np.linspace(0.2, 0.9, len(decade_stats)))
+
+# PLOT 1: Average revenue by Decade
+bars1 = ax1.bar(decade_stats['decade'].astype(str), decade_stats['avg_revenue'],
+                color = decade_colors, alpha = 0.8, edgecolor = 'black', linewidth = 1.5)
+
+for bar in bars1:
+    height = bar.get_height()
+    ax1.text(bar.get_x() + bar.get_width()/2., height,
+             f"${height:.0f}M", ha = 'center', va = 'bottom', fontsize = 9, fontweight = 'bold')
+    
+
+ax1.set_xlabel ('Decade', fontsize = 11, fontweight = 'bold')
+ax1.set_ylabel ('Average revenue ($ Millions)', fontsize = 11, fontweight = 'bold')
+ax1.set_title ('Revenue evolution by decade', fontsize = 12, fontweight = 'bold')
+ax1.tick_params(axis = 'x', rotation = 45)
+ax1.grid(True, alpha = 0.3, axis = 'y')
+
+# PLOT 2: Average budget by decade
+bars2 = ax2.bar(decade_stats['decade'].astype(str), decade_stats['avg_budget'],
+                color = decade_colors, alpha = 0.8, edgecolor = 'black', linewidth = 1.5)
+
+for bar in bars2:
+    height = bar.get_height()
+    ax2.text(bar.get_x() + bar.get_width()/2., height,
+             f"${height:.0f}M", ha = 'center', va = 'bottom', fontsize = 9, fontweight = 'bold')
+
+ax2.set_xlabel('Decade', fontsize = 11, fontweight = 'bold')
+ax2.set_ylabel('Average Budget ($ Millions)', fontsize = 11, fontweight = 'bold')
+ax2.set_title('Budget growth by decade', fontsize = 12, fontweight = 'bold')
+ax2.tick_params(axis = 'x', rotation = 45)
+ax2.grid(True, alpha = 0.3, axis = 'y')
+
+# PLOT 3: Film quality by decade
+bars3 = ax3.bar(decade_stats['decade'].astype(str), decade_stats['avg_rating'],
+                color = decade_colors, alpha = 0.8, edgecolor = 'black', linewidth = 1.5)
+
+for bar in bars3:
+    height = bar.get_height()
+    ax3.text(bar.get_x() + bar.get_width()/2., height,
+             f"{height:.2f}", ha = 'center', va = 'bottom', fontsize = 9, fontweight = 'bold')
+    
+overall_avg = decade_stats['avg_rating'].mean()
+ax3.axhline (y = overall_avg, color = 'red', linestyle = '--', linewidth = 2, alpha = 0.7,
+             label = f"Overall: {overall_avg:.2f}")
+ax3.set_xlabel('Decade', fontsize = 11, fontweight = 'bold')
+ax3.set_ylabel('Average Rating', fontsize = 11, fontweight = 'bold')
+ax3.set_title('Film quality by decade', fontsize = 12, fontweight = 'bold')
+ax3.tick_params(axis = 'x', rotation = 45)
+ax3.set_ylim(5.5, 7.0)
+ax3.legend(fontsize = 9)
+ax3.grid(True, alpha = 0.3, axis = 'y')
+
+# PLOT 4: Blockbuster rate by decade
+bars4 = ax4.bar(decade_stats['decade'].astype(str), decade_stats['blockbuster_rate'],
+                color = decade_colors, alpha = 0.8, edgecolor = 'black', linewidth = 1.5)
+
+for bar in bars4:
+    height = bar.get_height ()
+    ax4.text(bar.get_x() + bar.get_width()/2., height,
+             f"{height:.1f}%", ha = 'center', va = 'bottom', fontsize = 9, fontweight = 'bold')
+
+ax4.set_xlabel('Decade', fontsize = 11, fontweight = 'bold')
+ax4.set_ylabel('Blockbuster rate (%)', fontsize = 11, fontweight = 'bold')
+ax4.set_title('Blockbuster concentration by decade', fontsize = 12, fontweight = 'bold')
+ax4.tick_params(axis = 'x', rotation = 45)
+ax4.grid(True, alpha = 0.3, axis = 'y')
+
+fig.suptitle('Industry evolution: How the blockbuster formula changed over time',
+             fontsize = 16, fontweight = 'bold', y = 0.995)
+
+plt.tight_layout(rect = [0, 0, 1, 0.99])
+plt.show()
+
+# INSIGHTS:
+# - Revenue evolution by decade: average film revenue has grown consistently from $46M in the 1960s to $149M in the 2010s,
+#   representing almost a 224% increase. The most dramatic growth occurred from 1990 onwards, with 2010s showig the highest average
+#   revenue, reflecting the dominance of blockbuster tentpole films
+
+# - Budget growth by decade: production budgets have exploaded from $6M in the 1960s to $48M in the 2010s. The steepest rise occurred 
+#   between the 1980s and 1990s, driven by increased special effects costs and star salaries
+
+# - Film quality by decade: average ratings have remained remarkably stable, hovering between 6.26 - 7.04, with older films scoring slightly
+#   higher than modern releases. This stability suggests that increased commercialization hasn't compromised film quality, though it indicates critics
+#   and audiences rate modern blockbusters slightly lower than classic cinema
+
+# - Blockbuster concentration by decade: The blockbuster rate has surged from just 1.4% in the 1960s to 15.5% in the 2010s. This concentration demonstrates 
+#   the industry's shift from diverse mid budget filmmaking to a hits driven model where fewer films capture most of the revenue
+
+#7) Does release time matter for box office success?
+plt.close('all')
+
+# data for plot
+seasonal_data = data[['release_season', 'release_month', 'revenue', 'is_blockbuster']].dropna()
+
+# seasonal statistics
+season_stats = seasonal_data.groupby('release_season').agg({
+    'revenue': ['mean', 'median', 'count'],
+    'is_blockbuster': lambda x: (x.sum() / len(x) * 100) if len(x) > 0 else 0
+}).reset_index()
+
+season_stats.columns = ['season', 'avg_revenue', 'median_revenue', 'count', 'blockbuster_rate']
+season_stats['avg_revenue'] = season_stats['avg_revenue'] / 1e6
+season_stats['median_revenue'] = season_stats['median_revenue'] / 1e6
+
+# monthly statistics
+monthly_stats = seasonal_data.groupby('release_month').agg({
+    'revenue': 'mean',
+    'is_blockbuster': lambda x: (x.sum() / len(x) * 100) if len(x) > 0 else 0
+}).reset_index()
+
+monthly_stats.columns = ['month', 'avg_revenue', 'blockbuster_rate']
+monthly_stats['avg_revenue'] = monthly_stats['avg_revenue'] / 1e6
+
+# month names for better visualization
+month_names = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+monthly_stats['month_name'] = monthly_stats['month'].apply(lambda x: month_names[int(x) - 1])
+
+# Release time analysis
+
+# PLOT 1: Average revenue by season
+season_order = ['Winter', 'Spring', 'Summer', 'Fall']
+season_colors = {'Winter': 'blue', 'Spring': 'lightgreen', 'Summer': 'orange', 'Fall': 'brown'}
+season_stats_ordered = season_stats.set_index('season').reindex(season_order).reset_index()
+
+bars1 = ax1.bar(season_stats_ordered['season'], season_stats_ordered['avg_revenue'],
+                color = [season_colors[s] for s in season_stats_ordered['season']],
+                alpha = 0.8, edgecolor = 'black', linewidth = 1.5)
+
+for bar in bars1:
+    height = bar.get_height()
+    ax1.text(bar.get_x() + bar.get_width()/2., height,
+             f"${height:.1f}M", ha = 'center', va = 'bottom', fontsize = 11, fontweight = 'bold')
+    
+ax1.set_xlabel('Release Season', fontsize = 12, fontweight = 'bold')
+ax1.set_ylabel('Average Revenue ($ Millions)', fontsize = 12, fontweight = 'bold')
+ax1.set_title('Average Revenue by release Season', fontsize = 13, fontweight = 'bold')
+ax1.grid(True, alpha = 0.3, axis = 'y')
+
+# PLOT 2: Blockbuster rate by season
+bars2 = ax2.bar(season_stats_ordered['season'], season_stats_ordered['blockbuster_rate'],
+                color = [season_colors[s] for s in season_stats_ordered['season']],
+                alpha = 0.8, edgecolor = 'black', linewidth = 1.5)
+
+for bar in bars2:
+    height = bar.get_height()
+    ax2.text(bar.get_x() + bar.get_width()/2., height,
+             f"{height:.1f}%", ha = 'center', va = 'bottom', fontsize = 11, fontweight = 'bold')
+    
+ax2.set_xlabel('Release Season', fontsize = 12, fontweight = 'bold')
+ax2.set_ylabel('Blockbuster Rate (%)', fontsize = 12, fontweight = 'bold')
+ax2.set_title('Blockbuster concentration by season', fontsize = 13, fontweight = 'bold')
+ax2.grid(True, alpha = 0.3, axis = 'y')
+
+# PLOT 3: Average revenue by month
+max_month_idx = monthly_stats['avg_revenue'].idxmax()
+bars3[max_month_idx].set_color('yellow')
+bars3[max_month_idx].set_edgecolor('orange')
+bars3[max_month_idx].set_linewidth(2.5)
+
+for i, bar in enumerate(bars3):
+    height = bar.get_height()
+    ax3.text(bar.get_x() + bar.get_width()/2., height,
+             f"{height:.0f}M", ha = 'center', va = 'bottom', fontsize = 9, fontweight = 'bold')
+    
+ax3.set_xlabel('Release Month', fontsize = 12, fontweight = 'bold')
+ax3.set_ylabel('Average revenue ($ Millions)', fontsize = 12, fontweight = 'bold')
+ax3.set_title('Average revenue by month (Peak in yellow)', fontsize = 13, fontweight = 'bold')
+ax3.tick_params(axis = 'x', rotation = 45)
+ax3.grid(True, alpha = 0.3, axis = 'y')
+
+# PLOT 4: Film count by season (to show the release strategy of the film industry)
+bars4 = ax4.bar(season_stats_ordered['season'], season_stats_ordered['count'],
+                color = [season_colors[s] for s in season_stats_ordered['season']],
+                alpha = 0.8, edgecolor = 'black', linewidth = 1.5)
+
+for bar in bars4:
+    height = bar.get_height()
+    ax4.text(bar.get_x() + bar.get_width()/2., height,
+             f"{int(height)}", ha = 'center', va = 'bottom', fontsize = 11, fontweight = 'bold')
+    
+ax4.set_xlabel('Release season', fontsize = 12, fontweight = 'bold')
+ax4.set_ylabel('Number of films released', fontsize = 12, fontweight = 'bold')
+ax4.set_title('Release volume by season', fontsize = 13, fontweight = 'bold')
+
+fig.suptitle('Release timing strategy: Does when you release a film matter?',
+             fontsize = 16, fontweight = 'bold', y = 0.995)
+
+plt.tight_layout(rect = [0, 0, 1, 0.99])
+plt.show()
+
+# Key statistics of this analysis
+# BEST SEASON REVENUE
+best_season = season_stats_ordered.loc[season_stats_ordered['avg_revenue'].idxmax()]
+worst_season = season_stats_ordered.loc[season_stats_ordered['avg_revenue'].idxmin()]
+
+print (f"\nBest season: {best_season['season']} (${best_season['avg_revenue']:.1f}M) avg, {best_season['blockbuster_rate']:.1f}% blockbuster rate")
+print (f"\nWorst season: {worst_season['season']} (${worst_season['avg_revenue']:.1f}M) avg, {worst_season['blockbuster_rate']:.1f}% blockbuster rate")
+
+# BEST MONTH FOR REVENUE
+best_month = monthly_stats.loc[monthly_stats['avg_revenue'].idxmax()]
+print (f"\nPeak month: {best_month['month_name']} (${best_month['avg_revenue']:.1f}M avg, {best_month['blockbuster_rate']:.1f}% blockbuster rate)")
+
+# RELEASE VOLUME PATTERN
+most_releases = season_stats_ordered.loc[season_stats_ordered['count'].idxmax()]
+print (f"\nMost releases: {most_releases['season']} ({int(most_releases['count'])} films)")
+
+# INSIGHTS
+# Release timing significantly impact box office performance. Summer consistently dominates as a blockbuster season,
+# with studios strategically releasing their biggest films during school vacation periods when families and
+# teenagers have maximum availability. The 'summer blockbuster' phenomenon is real, these months generate substantially
+# higher revenues and blockbuster rates than other season. Winter (holiday season) typically ranks second, capitalizing on Christmas
+# and New Year audiences. Spring and Fall serve as "dump months" for lower budget films and counter programming, showing 
+# notably lower revenues. This seasonal pattern drives studios' release calendars and explains why tentpole films are rarely released 
+# in February or September
+
+
 
