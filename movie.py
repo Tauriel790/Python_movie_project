@@ -1200,17 +1200,20 @@ ax2.set_title('Blockbuster concentration by season', fontsize = 13, fontweight =
 ax2.grid(True, alpha = 0.3, axis = 'y')
 
 # PLOT 3: Average revenue by month
+monthly_revenue_clean = monthly_stats[monthly_stats['avg_revenue'] > 0].copy()
+
 bars3 = ax3.bar(monthly_stats['month_name'], monthly_stats['avg_revenue'],
                 color = 'steelblue', alpha = 0.8, edgecolor = 'black', linewidth = 1.5)
 
 max_month_idx = monthly_stats['avg_revenue'].idxmax()
+max_month_pos = monthly_revenue_clean.index.get_loc(max_month_idx)
 bars3[max_month_idx].set_color('yellow')
 bars3[max_month_idx].set_edgecolor('orange')
 bars3[max_month_idx].set_linewidth(2.5)
 
-for i, bar in enumerate(bars3):
-    height = bar.get_height()
-    ax3.text(bar.get_x() + bar.get_width()/2., height,
+for i, (idx, row) in enumerate(monthly_revenue_clean.iterrows()):
+    height = row['avg_revenue']
+    ax3.text(i, height,
              f"{height:.0f}M", ha = 'center', va = 'bottom', fontsize = 8, fontweight = 'bold')
     
 ax3.set_xlabel('Release Month', fontsize = 12, fontweight = 'bold')
@@ -1237,7 +1240,7 @@ ax4.set_title('Release volume by season', fontsize = 13, fontweight = 'bold')
 fig.suptitle('Release timing strategy: Does when you release a film matter?',
              fontsize = 16, fontweight = 'bold', y = 0.995)
 
-plt.tight_layout(rect = [0, 0, 1, 0.99])
+plt.tight_layout(rect = [0, 0.02, 1, 0.985], h_pad = 3.5, w_pad = 2.5)
 plt.show()
 
 # Key statistics of this analysis
@@ -1265,7 +1268,320 @@ print (f"\nMost releases: {most_releases['season']} ({int(most_releases['count']
 # notably lower revenues. This seasonal pattern drives studios' release calendars and explains why tentpole films are rarely released 
 # in February or September
 
+# 8) Does the genre of a film influence it's success and which genres dominate the box office?
+plt.close('all')
 
+# data for plotting
+genre_data = data[['primary_genre', 'revenue', 'popularity', 'is_blockbuster', 'vote_average']].dropna()
 
+# genre statistics
+genre_stats = genre_data.groupby('primary_genre').agg({
+    'revenue': ['mean', 'count'],
+    'popularity': 'mean',
+    'vote_average': 'mean',
+    'is_blockbuster': lambda x: (x.sum() / len(x) * 100) if len(x) > 0 else 0
+}).reset_index()
 
+genre_stats.columns = ['genre', 'avg_revenue', 'count', 'avg_popularity', 'avg_rating', 'blockbuster_rate']
+genre_stats['avg_revenue'] = genre_stats['avg_revenue'] / 1e6
 
+# filtering genres with at least 50 films for statistical significance
+genre_stats = genre_stats[genre_stats['count'] >= 50].copy()
+
+# sorting by average revenue for better visualization
+genre_stats_sorted = genre_stats.sort_values('avg_revenue', ascending = False)
+
+# genre analysis visualization
+fig = plt.figure(figsize = (22, 17))
+gs = fig.add_gridspec(2, 2, hspace = 0.5, wspace = 0.3, left = 0.10, right = 0.96, top = 0.93, bottom = 0.08)
+
+ax1 = fig.add_subplot(gs[0, 0])
+ax2 = fig.add_subplot(gs[0, 1])
+ax3 = fig.add_subplot(gs[1, 0])
+ax4 = fig.add_subplot(gs[1, 1])
+
+# PLOT 1: Average revenue by genre (top 10)
+top_revenue_genres = genre_stats_sorted.head(10)
+print(top_revenue_genres)
+bars1 = ax1.barh(range(len(top_revenue_genres)), top_revenue_genres['avg_revenue'],
+                 color = 'steelblue', alpha = 0.8, edgecolor = 'black', linewidth = 1.5)
+
+# now, we highlight the top genre
+bars1[0].set_color('red')
+bars1[0].set_edgecolor('darkred')
+bars1[0].set_linewidth(2.5)
+
+ax1.set_yticks(range(len(top_revenue_genres)))
+ax1.set_yticklabels(top_revenue_genres['genre'], fontsize = 11)
+
+for i, bar in enumerate(bars1):
+    width = bar.get_width()
+    ax1.text(width, bar.get_y() + bar.get_height()/2.,
+             f"${width:.1f}M", ha = 'left', va = 'center', fontsize = 10, fontweight = 'bold')
+    
+ax1.set_xlabel('Average Revenue ($ Millions)', fontsize = 12, fontweight = 'bold')
+ax1.set_ylabel('Genre', fontsize = 12, fontweight = 'bold')
+ax1.set_title('Top 10 genres by average revenue', fontsize = 13, fontweight = 'bold')
+ax1.invert_yaxis()
+ax1.grid(True, alpha = 0.3, axis = 'x')
+ax1.set_xlim(0, max(top_revenue_genres['avg_revenue']) * 1.15)
+
+# PLOT 2: Blockbusters rate by genre (top 10)
+top_blockbuster_genres = genre_stats.nlargest(10, 'blockbuster_rate')
+bars2 = ax2.barh(range(len(top_blockbuster_genres)), top_blockbuster_genres['blockbuster_rate'],
+                 color = 'orange', alpha = 0.8, edgecolor = 'black', linewidth = 1.5)
+
+# highlighting top genre
+bars2[0].set_color('red')
+bars2[0].set_edgecolor('darkred')
+bars2[0].set_linewidth(2.5)
+
+ax2.set_yticks(range(len(top_blockbuster_genres)))
+ax2.set_yticklabels(top_blockbuster_genres['genre'], fontsize = 11)
+
+for i, bar in enumerate(bars2):
+    width = bar.get_width()
+    ax2.text(width, bar.get_y() + bar.get_height()/2.,
+             f"{width:.1f}%", ha = 'left', va = 'center', fontsize = 10, fontweight = 'bold')
+    
+ax2.set_xlabel('Blockbuster rate (%)', fontsize = 12, fontweight = 'bold')
+ax2.set_ylabel('Genre', fontsize = 12, fontweight = 'bold')
+ax2.set_title('Top 10 genres by blockbuster rate', fontsize = 13, fontweight = 'bold')
+ax2.invert_yaxis()
+ax2.grid(True, alpha = 0.8, axis = 'x')
+ax2.set_xlim(0, max(top_blockbuster_genres['blockbuster_rate']) * 1.12)
+
+# PLOT 3: Average popularity by genre (top 10)
+top_popularity_genres = genre_stats.nlargest(10, 'avg_popularity')
+bars3 = ax3.barh(range(len(top_popularity_genres)), top_popularity_genres['avg_popularity'],
+                 color = 'purple', alpha = 0.8, edgecolor = 'black', linewidth = 1.5)
+
+# highlighting top genre
+bars3[0].set_color('darkviolet')
+bars3[0].set_edgecolor('black')
+bars3[0].set_linewidth(2.5)
+
+ax3.set_yticks(range(len(top_popularity_genres)))
+ax3.set_yticklabels(top_popularity_genres['genre'], fontsize = 11)
+
+for i, bar in enumerate(bars3):
+    width = bar.get_width()
+    ax3.text(width, bar.get_y() + bar.get_height()/2.,
+             f"{width:.1f}", ha = 'left', va = 'center', fontsize = 10, fontweight = 'bold')
+    
+ax3.set_xlabel('Average popularity score', fontsize = 12, fontweight = 'bold')
+ax3.set_ylabel('Genre', fontsize = 12, fontweight = 'bold')
+ax3.set_title('Top 10 genres by average popularity', fontsize = 13, fontweight = 'bold')
+ax3.invert_yaxis()
+ax3.grid(True, alpha = 0.3, axis = 'x')
+ax3.set_xlim(0, max(top_popularity_genres['avg_popularity']) * 1.12)
+
+# PLOT 4: Genre popularity - revenue vs count (bubble chart)
+# we first select the top 12 genres by count for clarity
+top_count_genres = genre_stats.nlargest(12, 'count')
+
+scatter = ax4.scatter(top_count_genres['avg_revenue'],
+                      top_count_genres['blockbuster_rate'],
+                      s = top_count_genres['count'] * 2,
+                      c = top_count_genres['avg_popularity'],
+                      cmap = 'viridis',
+                      alpha = 0.6,
+                      edgecolors = 'black',
+                      linewidth = 1.5)
+
+# genre labels to be added
+for _, row in top_count_genres.iterrows():
+    ax4.annotate(row['genre'],
+                 (row['avg_revenue'], row['blockbuster_rate']),
+                 fontsize = 9,
+                 ha = 'center',
+                 va = 'center',
+                 fontweight = 'bold')
+    
+ax4.set_xlabel('Average revenue ($ Millions)', fontsize = 12, fontweight = 'bold')
+ax4.set_ylabel('Blockbuster rate (%)', fontsize = 12, fontweight = 'bold')
+ax4.set_title('Genre success matrix (Size = film count, Color = popularity)', fontsize = 13, fontweight = 'bold')
+ax4.grid(True, alpha = 0.3)
+
+# colorbar
+color_bar = plt.colorbar(scatter, ax = ax4)
+color_bar.set_label('Avg popularity', fontsize = 10, fontweight = 'bold')
+
+fig.suptitle('Genre dominance: which types of films rule the box office?',
+             fontsize = 16, fontweight = 'bold', y = 0.995)
+
+plt.tight_layout(rect = [0, 0.01, 1, 0.99], h_pad = 3, w_pad = 2.5)
+plt.show()
+
+# INSIGHTS:
+# As we can see from the resulting plots, the genre of a film largely contributes to the commercial success of a film. Family films lead in revenue ($257.3 Million on average), followed
+# by Animation ($241.9 Million avg) and adventure ($223.1 Million avg), demonstrating that family friendly, spectacle driven content dominates box offices. Animations shows the highest 
+# blockbuster rate (32.9 %), with adventure (29.4%) and family (28.8 %) close behind, confirming these genres are the safest bets for blockbuster success. Family films also top popularity
+# scores (27.3), validating their broad audience appeal. The bubble chart (plot 4) reveals that while drama is the most produced genre, it generates low revenues and blockbuster rates, highlighting Hollywood's 
+# strategic shift toward high - budget franchise genres (Animation, Adventure, Sci-fi) over dramatic storytelling. Genre choice is then a critical success factor, studios prioritize spectacle and family appeal
+# over artistic merit to maximize their commercial returns.
+
+# 9) Do the types of production companies and production countries influence the blockbuster success of films?
+plt.close('all')
+
+# data for plotting
+country_data = data[['countries_str', 'revenue', 'is_blockbuster', 'popularity']].dropna()
+company_data = data[['companies_str', 'revenue', 'is_blockbuster', 'popularity']].dropna()
+
+# extract primary company and company (the first one listed)
+country_data['primary_country'] = country_data['countries_str'].apply(
+    lambda x: x.split(',')[0].strip() if pd.notna(x) and x != '' else 'Unknown'
+)
+
+company_data['primary_company'] = company_data['companies_str'].apply(
+    lambda x: x.split(',')[0].strip() if pd.notna(x) and x != '' else 'Unknown'
+)
+
+# Country analysis
+country_stats = country_data.groupby('primary_country').agg({
+    'revenue': ['mean', 'count'],
+    'popularity': 'mean',
+    'is_blockbuster': lambda x: (x.sum() / len(x) * 100) if len(x) > 0 else 0
+}).reset_index()
+
+country_stats.columns = ['country', 'avg_revenue', 'count', 'avg_popularity', 'blockbuster_rate']
+country_stats['avg_revenue'] = country_stats['avg_revenue'] / 1e6
+
+# filtering countries with at least 30 films for statistical significance
+country_stats = country_stats[country_stats['count'] >= 30].copy()
+country_stats_sorted = country_stats.sort_values('avg_revenue', ascending = False)
+
+# Company analysis
+company_stats = company_data.groupby('primary_company').agg({
+    'revenue': ['mean', 'count'],
+    'popularity': 'mean',
+    'is_blockbuster': lambda x: (x.sum() / len(x) * 100) if len(x) > 0 else 0
+}).reset_index()
+
+company_stats.columns = ['company', 'avg_revenue', 'count', 'avg_popularity', 'blockbuster_rate']
+company_stats['avg_revenue'] = company_stats['avg_revenue'] / 1e6
+
+# filtering companies with at least 20 films for statistical significance
+company_stats = company_stats[company_stats['count'] >= 20].copy()
+company_stats_sorted = company_stats.sort_values('avg_revenue', ascending = False)
+
+# Visualization
+fig = plt.figure(figsize = (24, 18))
+gs = fig.add_gridspec(2, 2, left = 0.22, right = 0.98, bottom = 0.07, top = 0.90, hspace = 0.46, wspace = 0.90)
+
+ax1 = fig.add_subplot(gs[0, 0])
+ax2 = fig.add_subplot(gs[0, 1])
+ax3 = fig.add_subplot(gs[1, 0])
+ax4 = fig.add_subplot(gs[1, 1])
+
+# PLOT 1: top 12 countries by average revenue
+top_countries_revenue = country_stats_sorted.head(12)
+bars1 = ax1.barh(range(len(top_countries_revenue)), top_countries_revenue['avg_revenue'],
+                 color = 'green', alpha = 0.8, edgecolor = 'black', linewidth = 1.5)
+
+# highlighting top country
+bars1[0].set_color('yellow')
+bars1[0].set_edgecolor('orange')
+bars1[0].set_linewidth(2.5)
+
+ax1.set_yticks(range(len(top_countries_revenue)))
+ax1.set_yticklabels(top_countries_revenue['country'], fontsize = 11)
+
+for i, (idx, row) in enumerate(top_countries_revenue.iterrows()):
+    ax1.text(row['avg_revenue'] + 3, i,
+             f"${row['avg_revenue']:.1f}M", ha = 'left', va = 'center', fontsize = 10, fontweight = 'bold')
+    
+ax1.set_xlabel('Average revenue ($ Millions)', fontsize = 12, fontweight = 'bold')
+ax1.set_ylabel('Country', fontsize = 12, fontweight = 'bold')
+ax1.set_title('Top 12 Countries by average revenue', fontsize = 14, fontweight = 'bold', pad = 20)
+ax1.invert_yaxis()
+ax1.grid(True, alpha = 0.3, axis = 'x')
+ax1.set_xlim(0, max(top_countries_revenue['avg_revenue']) * 1.25)
+
+# PLOT 2: Top 12 Countries by blockbuster rate
+top_countries_blockbuster = country_stats.nlargest(12, 'blockbuster_rate')
+bars2 = ax2.barh(range(len(top_countries_blockbuster)), top_countries_blockbuster['blockbuster_rate'],
+                 color = 'orange', alpha = 0.8, edgecolor = 'black', linewidth = 1.5)
+
+# highlight top countries 
+bars2[0].set_color('red')
+bars2[0].set_edgecolor('darkred')
+bars2[0].set_linewidth(2.5)
+
+ax2.set_yticks(range(len(top_countries_blockbuster)))
+ax2.set_yticklabels(top_countries_blockbuster['country'], fontsize = 11)
+
+for i, (idx, row) in enumerate(top_countries_blockbuster.iterrows()):
+    ax2.text(row['blockbuster_rate'] + 0.5, i,
+    f"{row['blockbuster_rate']:.1f}%", ha = 'left', va = 'center', fontsize = 10, fontweight = 'bold')
+
+ax2.set_xlabel('Blockbuster rate (%)', fontsize = 12, fontweight = 'bold')
+ax2.set_ylabel('Country', fontsize = 12, fontweight = 'bold')
+ax2.set_title('Top 12 Countries by blockbuster rate', fontsize = 14, fontweight = 'bold', pad = 20)
+ax2.invert_yaxis()
+ax2.grid(True, alpha = 0.3, axis = 'x')
+ax2.set_xlim(0, max(top_countries_blockbuster['blockbuster_rate']) * 1.20)
+
+# PLOT 3: Top 12 Companies by average revenue
+top_companies_revenue = company_stats_sorted.head(12)
+bars3 = ax3.barh(range(len(top_companies_revenue)), top_companies_revenue['avg_revenue'],
+                 color = 'purple', alpha = 0.8, edgecolor = 'black', linewidth = 1.5)
+
+# highlighting top company
+bars3[0].set_color('darkviolet')
+bars3[0].set_edgecolor('black')
+bars3[0].set_linewidth(2.5)
+
+ax3.set_yticks(range(len(top_companies_revenue)))
+ax3.set_yticklabels(top_companies_revenue['company'], fontsize = 11)
+
+for i, (idx, row) in enumerate (top_companies_revenue.iterrows()):
+    ax3.text(row['avg_revenue'] + 3, i,
+             f"${row['avg_revenue']:.1f}M", ha = 'left', va = 'center', fontsize = 10, fontweight = 'bold')
+
+ax3.set_xlabel('Average revenue ($ Millions)', fontsize = 12, fontweight = 'bold')
+ax3.set_ylabel('Production company', fontsize = 12, fontweight = 'bold')
+ax3.set_title('Top 12 Companies by average revenue', fontsize = 14, fontweight = 'bold', pad = 20)
+ax3.invert_yaxis()
+ax3.grid(True, alpha = 0.3, axis = 'x')
+ax3.set_xlim(0, max(top_companies_revenue['avg_revenue']) * 1.25)
+
+# PLOT 4: Top 12 Companies by blockbuster rate
+top_companies_blockbuster = company_stats.nlargest(12, 'blockbuster_rate')
+bars4 = ax4.barh(range(len(top_companies_blockbuster)), top_companies_blockbuster['blockbuster_rate'],
+                 color = 'teal', alpha = 0.8, edgecolor = 'black', linewidth = 1.5)
+
+# highlighting top company
+bars4[0].set_color('darkgreen')
+bars4[0].set_edgecolor('black')
+bars4[0].set_linewidth(2.5)
+
+ax4.set_yticks(range(len(top_companies_blockbuster)))
+ax4.set_yticklabels(top_companies_blockbuster['company'], fontsize = 11)
+
+for i, (idx, row) in enumerate(top_companies_blockbuster.iterrows()):
+    ax4.text(row['blockbuster_rate'] + 0.5, i,
+    f"{row['blockbuster_rate']:.1f}%", ha = 'left', va = 'center', fontsize = 10, fontweight = 'bold')
+
+ax4.set_xlabel('Blockbuster rate (%)', fontsize = 12, fontweight = 'bold')
+ax4.set_ylabel('Production Company', fontsize = 12, fontweight = 'bold')
+ax4.set_title('Top 12 Companies by blockbuster rate', fontsize = 14, fontweight = 'bold', pad = 20)
+ax4.invert_yaxis()
+ax4.grid(True, alpha = 0.3, axis = 'x')
+ax4.set_xlim(0, max(top_companies_blockbuster['blockbuster_rate']) * 1.20)
+
+# we will give now each axes a little room so the value labels don't clip
+for ax in (ax1, ax2, ax3, ax4):
+    ax.margins(x = 0.08)
+    ax.tick_params(axis = 'y', labelsize = 11)
+    ax.set_title(ax.get_title (), pad = 14)
+
+    if ax in (ax1, ax3):
+        ax.tick_params(axis = 'y', pad = 6)
+    else:
+        ax.tick_params(axis = 'y', pad = 0)
+
+fig.suptitle('Production origins: Do Country & Company determine success?', 
+             fontsize = 18, fontweight = 'bold', y =  0.985)
+
+plt.show()
