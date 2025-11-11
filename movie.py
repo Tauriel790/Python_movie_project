@@ -1137,6 +1137,9 @@ plt.close('all')
 # data for plot
 seasonal_data = data[['release_season', 'release_month', 'revenue', 'is_blockbuster']].dropna()
 
+# create the figure
+fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots (2, 2, figsize = (18, 12))
+
 # seasonal statistics
 season_stats = seasonal_data.groupby('release_season').agg({
     'revenue': ['mean', 'median', 'count'],
@@ -1197,6 +1200,9 @@ ax2.set_title('Blockbuster concentration by season', fontsize = 13, fontweight =
 ax2.grid(True, alpha = 0.3, axis = 'y')
 
 # PLOT 3: Average revenue by month
+bars3 = ax3.bar(monthly_stats['month_name'], monthly_stats['avg_revenue'],
+                color = 'steelblue', alpha = 0.8, edgecolor = 'black', linewidth = 1.5)
+
 max_month_idx = monthly_stats['avg_revenue'].idxmax()
 bars3[max_month_idx].set_color('yellow')
 bars3[max_month_idx].set_edgecolor('orange')
@@ -1205,13 +1211,14 @@ bars3[max_month_idx].set_linewidth(2.5)
 for i, bar in enumerate(bars3):
     height = bar.get_height()
     ax3.text(bar.get_x() + bar.get_width()/2., height,
-             f"{height:.0f}M", ha = 'center', va = 'bottom', fontsize = 9, fontweight = 'bold')
+             f"{height:.0f}M", ha = 'center', va = 'bottom', fontsize = 8, fontweight = 'bold')
     
 ax3.set_xlabel('Release Month', fontsize = 12, fontweight = 'bold')
 ax3.set_ylabel('Average revenue ($ Millions)', fontsize = 12, fontweight = 'bold')
 ax3.set_title('Average revenue by month (Peak in yellow)', fontsize = 13, fontweight = 'bold')
-ax3.tick_params(axis = 'x', rotation = 45)
+ax3.tick_params(axis = 'x', rotation = 45, labelsize = 10)
 ax3.grid(True, alpha = 0.3, axis = 'y')
+ax3.set_ylim(0, max(monthly_stats['avg_revenue']) * 1.15)
 
 # PLOT 4: Film count by season (to show the release strategy of the film industry)
 bars4 = ax4.bar(season_stats_ordered['season'], season_stats_ordered['count'],
@@ -1257,6 +1264,8 @@ print (f"\nMost releases: {most_releases['season']} ({int(most_releases['count']
 # and New Year audiences. Spring and Fall serve as "dump months" for lower budget films and counter programming, showing 
 # notably lower revenues. This seasonal pattern drives studios' release calendars and explains why tentpole films are rarely released 
 # in February or September
+
+
 
 
 
