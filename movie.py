@@ -448,41 +448,50 @@ ax1.grid(True, alpha = 0.3)
 # exlude extreme negatives for better visualization
 ax1.set_ylim(1e3, 1e9)
 
-# RIGHT PLOTS: ROI by budget category (by using a box plot)
+# RIGHT PLOT: Average profit by budget category (bar plot)
 budget_categories = []
-roi_values = []
+profit_values = []
 
-for _, row in clean_data.iterrows():
+for _, row in clean_profit_data.iterrows():
     if row['budget'] < 1e6:
         budget_categories.append('Low\n(<$1M)')
-        roi_values.append(row['roi'])
+        profit_values.append(row['profit'])
     elif row['budget'] < 5e7:
         budget_categories.append('Mid\n($1M - $50M)')
-        roi_values.append(row['roi'])
+        profit_values.append(row['profit'])
     else:
         budget_categories.append('High\n(>$50M)')
-        roi_values.append(row['roi'])
+        profit_values.append(row['profit'])
 
-roi_df = pd.DataFrame({'Budget Category': budget_categories, 'ROI (%)': roi_values})
+profit_df = pd.DataFrame({'Budget Category': budget_categories, 'Profit ($)': profit_values})
 
-# now we create the boxplot
-sns.boxplot(x = 'Budget Category', y = 'ROI (%)', data = roi_df, ax = ax2,
-            order = ['Low\n(<$1M)', 'Mid\n($1M - $50M)', 'High\n(>$50M)'],
-            palette = ['lightcoral', 'lightblue', 'lightgreen'],
-            showfliers = False)  # hide outliers for cleaner visualization
+# Calculate the average profit for each category
+category_order = ['Low\n(<$1M)', 'Mid\n($1M - $50M)', 'High\n(>$50M)']
+avg_profit_by_category = profit_df.groupby('Budget Category')['Profit ($)'].mean() /1e6
+avg_profit_by_category = avg_profit_by_category.reindex(category_order)
 
-ax2.axhline (y = 0, color = 'red', linestyle = '--', linewidth = 1, alpha = 0.7, label = 'Break-even')
-ax2.set_ylabel ('ROI (%)', fontsize = 12)
-ax2.set_xlabel ('Budget Category', fontsize = 12)
-ax2.set_title ('ROI distribution by Budget Category', fontsize = 14, fontweight = 'bold')
-ax2.legend(fontsize = 10)
+# now we create the barplot
+colors = ['lightcoral', 'lightblue', 'lightgreen']
+bars = ax2.bar(category_order, avg_profit_by_category,
+               color = colors, alpha = 0.8,
+               edgecolor = 'black', linewidth = 1.5)
+
+# then, we add value labels on bars
+for bar in bars:
+    height = bar.get_height()
+    ax2.text(bar.get_x() + bar.get_width() / 2., height,
+             f"${height:.1f}M",
+             ha = 'center', va = 'bottom', fontsize = 11, fontweight = 'bold')
+    
+ax2.set_ylabel ('Average profit ($ Millions)', fontsize = 12)
+ax2.set_xlabel ('Budget category', fontsize = 12)
+ax2.set_title ('Average Profit by budget category', fontsize = 14, fontweight = 'bold')
+ax2.legend (fontsize = 10)
 ax2.grid(True, alpha = 0.3, axis = 'y')
 
-# the range of the y axis will be limited to clip extreme outliers just for visibility purposes
-ax2.set_ylim (-100, 2000)
-
-plt.tight_layout()
+plt.tight_layout(pad = 2.0)
 plt.show()
+
 
 # There is no single "most profitable" budget range—each serves a different strategic purpose. The film industry thrives 
 # on this diversity, balancing consistent mid-budget returns, the scale of blockbusters, and the occasional low-budget 
@@ -1613,6 +1622,8 @@ print(f"Films produced: {int(top_company['count'])}")
 
 # the leading company in blockbuster film production is Lucas film, with a blockbuster rate of 60% and an average revenue of 494 Millions
 # of dollars even though it didn't produced so many films in comparison to other companies (20 films were produced by Lucasfilms).
+
+
 
 
 
