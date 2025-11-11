@@ -1448,7 +1448,7 @@ country_stats.columns = ['country', 'avg_revenue', 'count', 'avg_popularity', 'b
 country_stats['avg_revenue'] = country_stats['avg_revenue'] / 1e6
 
 # filtering countries with at least 30 films for statistical significance
-country_stats = country_stats[country_stats['count'] >= 30].copy()
+country_stats = country_stats[country_stats['count'] >= 100].copy()
 country_stats_sorted = country_stats.sort_values('avg_revenue', ascending = False)
 
 # Company analysis
@@ -1585,3 +1585,38 @@ fig.suptitle('Production origins: Do Country & Company determine success?',
              fontsize = 18, fontweight = 'bold', y =  0.985)
 
 plt.show()
+
+# key statistics of this analysis:
+# - Top country
+top_country = country_stats_sorted.iloc[0]
+print(f"\nTop Country by revenue: {top_country['country']}")
+print(f"Average revenue: ${top_country['avg_revenue'].round()}M")
+print(f"Blockbuster rate: {top_country['blockbuster_rate'].round()}%")
+print(f"Films produced: {int(top_country['count'])}")
+
+# - Top country by blockbuster rate
+top_blockbuster_country = country_stats.loc[country_stats['blockbuster_rate'].idxmax()]
+print(f"\nMost blockbuster prone Country: {top_blockbuster_country['country']}")
+print(f"Blockbuster Rate: {top_blockbuster_country['blockbuster_rate'].round()}%")
+print(f"Average revenue: ${top_blockbuster_country['avg_revenue'].round()}M")
+
+# it results to be that the best country for blockbuster rate is United kingdom followed by the United states, probably United kingdom
+# comes before the USA because it counts some films that are co - produced by both US and UK (like Harry Potter, James Bond and so on), 
+# so the top blockbuster countries are in general english speaking countries.
+
+# Top company
+top_company = company_stats_sorted.iloc[0]
+print(f"\nTop Company by revenue: {top_company['company']}")
+print(f"Blockbuster Rate: {top_company['blockbuster_rate'].round()}%")
+print(f"Average revenue: ${top_company['avg_revenue'].round()}M")
+print(f"Films produced: {int(top_company['count'])}")
+
+# the leading company in blockbuster film production is Lucas film, with a blockbuster rate of 60% and an average revenue of 494 Millions
+# of dollars even though it didn't produced so many films in comparison to other companies (20 films were produced by Lucasfilms).
+
+
+
+
+
+
+
