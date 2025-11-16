@@ -1,6 +1,5 @@
 # first, libraries needed for the project are loaded into the environment
 import pandas as pd
-import csv
 import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
@@ -13,7 +12,7 @@ import math
 # DATA LOADING AND INITIAL EXPLORATION:
 # ---------------------------------------------------------------------------------------------------------------------------------------------
 # loading the dataset
-data = pd.read_csv("movies_metadata.csv", low_memory = False, on_bad_lines = "skip")
+data = pd.read_csv("data/movies_metadata.csv", low_memory = False, on_bad_lines = "skip")
 
 # visualization of the dataset composizion
 data.head(8)
@@ -212,25 +211,27 @@ print(f"\nFinal columns retained: {data.columns.to_list()}")
 
 
 # --------------------------------------------------- FEATURE ENGINEERING ----------------------------------------------------------------------
+# Feature engineering is conducted before EDA to enable comprehensive analysis of what makes a blockbuster profitable
 
+# Ensure release_date is in datetime format
 data['release_date'] = pd.to_datetime(data['release_date'])
 
-# before going on with the analysis of insights ans EDA (exploratory data analysis), feature enginireen are conducted in order to have a more
-# complete analysis of the dataset. 6 feature enginireeng are used
-
-# 1) adding financial metrics in order to answer the most important question of this project: "What makes a blockbuster profitable?"
+# ----------------------------------------------------------------------------------------------------------------------------------------------
+# 1) FINANCIAL METRICS:
+# ----------------------------------------------------------------------------------------------------------------------------------------------
+# Calculate profit and profitability for movies with complete financial data
 df_financial = data[data[['budget', 'revenue']].notna().all(axis = 1)].copy() 
 df_financial['profit'] = df_financial['revenue'] - df_financial['budget']
 df_financial['is_profitable'] = df_financial ['profit'] > 0
 
-# now we merge them together
+# Merge financial metrics back into the main dataset
 data = data.merge(df_financial[['title', 'release_date', 'profit','is_profitable']],
                   on = ['title', 'release_date'], how = 'left')
 
-# 2) adding temporal features to analyze trends within the data
-
-# for example, we can add "decade" to see the changes over a period of time of the industry
-data['release_date'] = pd.to_datetime(data['release_date'])
+# ----------------------------------------------------------------------------------------------------------------------------------------------
+# 2) TEMPORAL FEATURES:
+# ----------------------------------------------------------------------------------------------------------------------------------------------
+# Add decade to analyze industry trends over time
 data['decade'] = (data['release_year'] // 10) * 10
 
 # we can add also season, to see if the release time of the movie matters
@@ -241,39 +242,52 @@ seasons_map = {12: 'Winter', 1: 'Winter', 2: 'Winter',
 data['release_month'] = data['release_date'].dt.month
 data['release_season'] = data['release_month'].map(seasons_map)
 
-# 3) then, we can add a feature to identify the blockbuster movies
+# ----------------------------------------------------------------------------------------------------------------------------------------------
+# 3) BLOCKBUSTER INDICATOR:
+# ----------------------------------------------------------------------------------------------------------------------------------------------
+# Identify blockbuster movies using 90th percentile revenue threshold
 revenue_with_data = data[data['revenue'].notna()].copy()
 blockbuster_threshold = revenue_with_data['revenue'].quantile(0.90)
 revenue_with_data['is_blockbuster'] = revenue_with_data['revenue'] >= blockbuster_threshold
 
+# Merge blcokbuster indicator back into main dataset
 data = data.merge(revenue_with_data[['title', 'release_date', 'is_blockbuster']],
                   on = ['title', 'release_date'], how = 'left')
 
 print(f"Blockbuster indicator added (threshold: $ {blockbuster_threshold.round(2)})")
+print(f"Number of blockbusters identified: {revenue_with_data['is_blockbuster'].sum()}")
 
-# first we drop the original json columns to keep only the readable string versions
+# ----------------------------------------------------------------------------------------------------------------------------------------------
+# FINAL DATASET PREPARATION:
+# ----------------------------------------------------------------------------------------------------------------------------------------------
+# Drop original JSON columns (keeping only readable string versions)
 data = data.drop(columns = json_columns, errors = 'ignore')
 
 # now we verify the final dataset structure
 print(data.columns.to_list())
 data[['genres_str', 'companies_str', 'countries_str', 'primary_genre']].dtypes
 
-# then, before starting the analysis, the cleaned data are saved as CSV
-data.to_csv('movies_with_features.csv', index = False)
+# then, before starting the analysis save cleaned and feature-engineered dataset
+data.to_csv('data/movies_with_features.csv', index = False)
 
-# --------------------------------------------- EDA (Exploratory data analysis) ----------------------------------------------------------------
+# ---------------------------------------------------- EXPLORATORY DATA ANALYSIS (EDA) ---------------------------------------------------------------
 # first we have to analyze the distribution of the variables within the data through bar plots and density plots to have a general view of the
 # data itself
 
-data = pd.read_csv("movies_with_features.csv")
-data.head()
-data.info()
+# Load the feature-engineered dataset saved before
+data = pd.read_csv("data/movies_with_features.csv")
+print(data.head())
+print(data.info())
 
-# variables to use for the histograms 
+# ----------------------------------------------------------------------------------------------------------------------------------------------------
+# DISTRIBUTION ANALYSIS - HISTOGRAMS:
+# ----------------------------------------------------------------------------------------------------------------------------------------------------
+# Variables to select for the distribution analysis
 dist_variables = ['budget', 'revenue', 'profit', 'runtime',
                   'popularity', 'vote_average', 'vote_count',
                   'release_year']
 
+# Set up the subplot grid
 n = len(dist_variables)
 cols = 3
 rows = math.ceil(n/cols)
@@ -281,11 +295,12 @@ rows = math.ceil(n/cols)
 fig, axes = plt.subplots(rows, cols, figsize = (18, rows*4))
 axes = axes.flatten()
 
+# Now, create the histogram for each variable using a for loop
 for i, col in enumerate(dist_variables):
     ax = axes[i]
     series = data[col].dropna()
 
-    # use log transformation for heavy right skewed variables
+    # use log transformation for heavy right skewed variables (skewness > 1.2)
     log_transform = series.min() > 0 and series.skew() > 1.2
     
     if log_transform:
@@ -307,15 +322,19 @@ for j in range (len(dist_variables), len(axes)):
 plt.tight_layout(pad = 2.0)
 plt.show()
 
+# ----------------------------------------------------------------------------------------------------------------------------------------
+# DISTRIBUTION ANALYSIS - DENSITY PLOTS:
+# ----------------------------------------------------------------------------------------------------------------------------------------
 # after the histograms, also density plots can be used to show the distribution of the variables
 fig, axes = plt.subplots(rows, cols, figsize = (18, rows *4))
 axes = axes.flatten()
 
+# Create density plot for each variable
 for i, col in enumerate(dist_variables):
     ax = axes[i]
     series = data[col].dropna()
 
-    #log transform for heavy right skewed variables
+    # apply log transform for heavy right skewed variables (skewness > 1.2)
     log_transform = series.min() > 0 and series.skew() > 1.2
 
     if log_transform:
@@ -339,6 +358,7 @@ for i, col in enumerate(dist_variables):
     ax.tick_params(axis = 'both', labelsize = 9)
     ax.legend(fontsize = 8)
 
+# Hide unsued subplots
 for j in range(i + 1, len(axes)):
     axes[j].set_visible(False)
 
@@ -346,11 +366,12 @@ plt.tight_layout(pad = 2.0)
 plt.savefig('density_plots.png', dpi = 300, bbox_inches = 'tight')
 plt.show()
 
-#  --------------------------------------------- CORE BLOCKBUSTER ANALYSIS ----------------------------------------------------------------------
-# A first question that can be analyzed is the following and its the most important one
-# in this project (the most critical relationship)
-
-# 1) DOES SPENDING MORE ON A MOVIE GUARANTEE HIGHER REVENUE? (BUDGET VS REVENUE) ----------------------------------------------------------------
+# -----------------------------------------------------------------------------------------------------------------------------------------------
+#  CORE BLOCKBUSTER ANALYSIS:
+# -----------------------------------------------------------------------------------------------------------------------------------------------
+# 1) DOES SPENDING MORE ON A MOVIE GUARANTEE HIGHER REVENUE? (BUDGET VS REVENUE)
+# -----------------------------------------------------------------------------------------------------------------------------------------------
+# This is the most critical relationship for understanding blockbuster success
 
 # PIE CHART OF THE DISTRIBUTION OF THE PROFITABLE AND UNPROFITABLE FILMS
 # to show this relationship, a scatter plot with a trend line will be used
@@ -410,9 +431,10 @@ print(f"\nLow budget films (<$1M): {len(low_budget)}, have an average revenue of
 print(f"Mid budget films ($1M - $50M): {len(mid_budget)}, average revenue: ${mid_budget['revenue'].mean()/1e6} M")
 print(f"High budget films (> $50M): {len(high_budget)}, average revenue: ${high_budget['revenue'].mean()/1e6} M")
 
-# before going on with the next analysis is it better to understand the distribution of profitable and unprofitable films in the dataset
+# Before going on with the next analysis is it better to understand the distribution of profitable and unprofitable films in the dataset
 # just to have a clearer view of the dataset structure for this part
 
+# PIE CHART OF THE DISTRIBUTION OF PROFITABLE AND UNPROFITABLE FILMS:
 # first we visualize thorugh a pie chart the proportions of profitable and non profitable films present in the dataset
 # just to add comprehend better this part of the dataset
 plt.close('all')
@@ -451,7 +473,9 @@ plt.show()
 
 # since we are searching for the blockbuster formula, in the next analysis we will focus only on profitable films
 
-# 2) DOES THE BUDGET REALLY INFLUENCE THE SUCCESS OF A FILM? (BUDGET VS PROFIT) -----------------------------------------------------------------
+# -----------------------------------------------------------------------------------------------------------------------------------------------
+# 2) DOES THE BUDGET REALLY INFLUENCE THE SUCCESS OF A FILM? (BUDGET VS PROFIT) 
+# -----------------------------------------------------------------------------------------------------------------------------------------------
 
 plt.close('all')
 
@@ -542,7 +566,9 @@ plt.show()
 # films average $177.9 M profit compared to $47.1 M for mid - budget and $19.7 M for low - budget films. However, the
 # wide scatter demonstrates that budget alone doesn't guarantee success - creative and timing matter equally.
 
-# 3) DO BETTER RATED MOVIES MAKE MORE MONEY (VOTE AVERAGE (RATING) VS REVENUE) ------------------------------------------------------------------
+# -----------------------------------------------------------------------------------------------------------------------------------------------
+# 3) DO BETTER RATED MOVIES MAKE MORE MONEY (VOTE AVERAGE (RATING) VS REVENUE) 
+# -----------------------------------------------------------------------------------------------------------------------------------------------
 
 plt.close('all')
 
@@ -654,14 +680,16 @@ plt.show()
 # categories, but blockbusters require factors beyond critical acclaim - marketing, timing, and audience appeal matter
 # equally.
 
-# 4) IS THERE AN OPTIMAL MOVIE LENGTH FOR BOX OFFICE SUCCESS? -----------------------------------------------------------------------------------
+# -----------------------------------------------------------------------------------------------------------------------------------------------
+# 4) IS THERE AN OPTIMAL MOVIE LENGTH FOR BOX OFFICE SUCCESS? 
+# -----------------------------------------------------------------------------------------------------------------------------------------------
 
 plt.close ('all')
 
 # prepare the clean data for plotting
 runtime_revenue = data [['runtime', 'revenue']].dropna()
 
-# we identify the blockbusters
+# Identify the blockbusters
 blockbuster_threshold = runtime_revenue['revenue'].quantile(0.90)
 runtime_revenue['is_blockbuster'] = runtime_revenue['revenue'] >= blockbuster_threshold
 
@@ -681,9 +709,10 @@ def categorize_runtime(runtime):
     
 runtime_revenue['runtime_category'] = runtime_revenue['runtime'].apply(categorize_runtime)
 
-# FIRST THE SCATTERPLOT
+# Visualization
 fig, (ax1, ax2) = plt.subplots(1, 2, figsize = (20, 8))
 
+# LEFT PLOT: Scatterplot
 regular_movies = runtime_revenue[~runtime_revenue['is_blockbuster']]
 blockbusters = runtime_revenue[runtime_revenue['is_blockbuster']]
 
@@ -707,7 +736,7 @@ ax1.scatter(blockbusters['runtime'],
             marker = '*',
             label = f"Blockbusters (n = {len(blockbusters)})")
 
-# add again a trend line as we did before with the other scatter plots
+# Add trend line
 z_runtime = np.polyfit(runtime_revenue['runtime'],
                        np.log10(runtime_revenue['revenue']), 1)
 p_runtime = np.poly1d(z_runtime)
@@ -743,7 +772,7 @@ print (correlation_runtime)
 
 ax1.legend(fontsize = 10, loc = 'upper left')
 
-# now the bar plot
+# RIGHT PLOT: Bar plot
 category_order = ['Short\n(<90 min)', 'Standard\n(90 - 120 min)', 'Long\n(120 - 150 min)', 'Epic\n(>=150 min)']
 avg_revenue_runtime = runtime_revenue.groupby('runtime_category')['revenue'].mean() / 1e6
 avg_revenue_runtime = avg_revenue_runtime.reindex(category_order)
@@ -752,7 +781,7 @@ colors_runtime = ['blue', 'violet', 'purple', 'pink']
 bars = ax2.bar(category_order, avg_revenue_runtime, color = colors_runtime, alpha = 0.8,
                edgecolor = 'black', linewidth = 1.5)
 
-# bar's labels 
+# Bar labels 
 for bar in bars:
     height = bar.get_height()
     ax2.text(bar.get_x() + bar.get_width()/2., height,
@@ -764,15 +793,16 @@ ax2.set_ylabel('Average revenue ($ Millions)', fontsize = 12, fontweight = 'bold
 ax2.set_title('Bar Plot: Average Revenue by Runtime', fontsize = 13, fontweight = 'bold')
 ax2.grid(True, alpha = 0.3, axis = 'y')
 
-# title 
+# Figure title 
 fig.suptitle('Runtime vs Revenue: Does Movie length affects box office success?',
              fontsize = 16, fontweight = 'bold', y = 0.98)
 
 plt.tight_layout(rect = [0.02, 0, 1, 0.96])
 plt.show()
 
-# now, we go on with the statistical analysis
-# correlation
+# Statistical analysis: 
+
+# correlation strength interpretation
 if correlation_runtime < 0.3:
     strength = "weak"
 elif correlation_runtime < 0.7:
@@ -800,17 +830,17 @@ for i, (bin_name, row) in enumerate (bin_analysis_sorted.head().iterrows(), 1):
 for i, (bin_name, row) in enumerate (bin_analysis_sorted.tail().iterrows(), 1):
     print (f"{i}. {bin_name} min: Mean = ${row['mean']/1e6:>6,.1f}M, Median = ${row['median']/1e6:>6,.1f}M, n = {int(row['count']):>3}")
 
-# now we analyze the blockbuster patterns about runtime
+# Blockbuster runtime patterns
 blockbuster_runtimes = runtime_revenue[runtime_revenue['is_blockbuster']]['runtime']
 regular_runtimes = runtime_revenue[~runtime_revenue['is_blockbuster']]['runtime']
 
-# so now we do a runtime comparison
+# Blockbuster films
 print(f"\nBlockbuster films (top 10%):")
 print(f"Mean runtime: {blockbuster_runtimes.mean().round()} minutes")
 print(f"Median runtime: {blockbuster_runtimes.median().round()} minutes")
 print(f"Range: {blockbuster_runtimes.min()} - {blockbuster_runtimes.max()} minutes")
 
-# now we do the same comparison also for regular films
+# Regular films
 print(f"\nRegular films:")
 print(f"Mean runtime: {regular_runtimes.mean().round()} minutes")
 print(f"Median runtime: {regular_runtimes.median().round()} minutes")
@@ -833,9 +863,7 @@ print(f"The average revenue for films of long runtime is: $ {long_avg.round()} M
 epic_avg= runtime_revenue[runtime_revenue['runtime_category'] == 'Epic\n(>=150 min)']['revenue'].mean()/1e6
 print(f"The average revenue for films of epic runtime is: $ {epic_avg.round()} M")
 
-# now in addition we print out also the names of the 5 longest movies in the dataset (highest runtimes) and of the 
-# bottom 5 shortest films by runtime
-
+# Longest and shortest films:
 runtime_with_titles = data[['title', 'runtime', 'revenue']].dropna()
 
 # - TOP 5 LONGEST FILMS
@@ -856,7 +884,9 @@ for i, (idx, row) in enumerate(shortest_movies.iterrows(), 1):
 # and the revenue but this correlation is not so strong, meaning that is only one of the factors that contributes to make a blockbuster but not the only one as 
 # we have seen in previous analysis.
 
-# 5) DOOES HIGHER POPULARITY TRANSLATE TO HIGHER REVENUE? (POPULARITY VS REVENUE) ----------------------------------------------------------------
+# -------------------------------------------------------------------------------------------------------------------------------------------------------------
+# 5) DOOES HIGHER POPULARITY TRANSLATE TO HIGHER REVENUE? (POPULARITY VS REVENUE) 
+# -------------------------------------------------------------------------------------------------------------------------------------------------------------
 plt.close('all')
 
 # prepare as always the data for the plotting
@@ -986,8 +1016,11 @@ plt.show()
 # But the scatter also shows great variations meaning that while there is a mild/strong correlation between popularity and revenue, it is not always the case,
 # so, the blockbuster effect is not always guaranteed.
 
-# ----------------------------------------------------------- TEMPORAL PATTERNS -----------------------------------------------------------------
-# 6) DOES THE RELEASE YEAR AFFECTS THE SUCCESS OF A FILM AND HOW HAS THE FILM INDUSTRY EVOLVED OVER TIME? ---------------------------------------
+# -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+# TEMPORAL PATTERNS:
+# -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+# 6) DOES THE RELEASE YEAR AFFECT THE SUCCESS OF A FILM AND HOW HAS THE FILM INDUSTRY EVOLVED OVER TIME? 
+# -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 plt.close('all')
 
 # prepare the data before plotting
@@ -1082,16 +1115,16 @@ ax4.grid(True, alpha = 0.3, axis = 'y')
 fig.suptitle('Industry evolution: How the blockbuster formula changed over time',
              fontsize = 13, fontweight = 'bold', y = 0.98)
 
-# udjust the settings of the final image for better control spacing 
+# Adjust the settings of the final image for better control spacing 
 plt.subplots_adjust(left = 0.08, right = 0.96, top = 0.92, bottom = 0.08, hspace = 0.45, wspace = 0.25)
 plt.show()
 
 # INSIGHTS:
 # - Revenue evolution by decade: average film revenue has grown consistently from $46M in the 1960s to $149M in the 2010s,
-#   representing almost a 224% increase. The most dramatic growth occurred from 1990 onwards, with 2010s showig the highest average
+#   representing almost a 224% increase. The most dramatic growth occurred from 1990 onwards, with 2010s showing the highest average
 #   revenue, reflecting the dominance of blockbuster tentpole films
 
-# - Budget growth by decade: production budgets have exploaded from $6M in the 1960s to $48M in the 2010s. The steepest rise occurred 
+# - Budget growth by decade: production budgets have exploded from $6M in the 1960s to $48M in the 2010s. The steepest rise occurred 
 #   between the 1980s and 1990s, driven by increased special effects costs and star salaries
 
 # - Film quality by decade: average ratings have remained remarkably stable, hovering between 6.26 - 7.04, with older films scoring slightly
@@ -1101,7 +1134,9 @@ plt.show()
 # - Blockbuster concentration by decade: The blockbuster rate has surged from just 1.4% in the 1960s to 15.5% in the 2010s. This concentration demonstrates 
 #   the industry's shift from diverse mid budget filmmaking to a hits driven model where fewer films capture most of the revenue
 
-# 7) DOES RELEASE TIME MATTER FOR BOX OFFICE SUCCESS? -------------------------------------------------------------------------------------------
+# -----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+# 7) DOES RELEASE TIME MATTER FOR BOX OFFICE SUCCESS? 
+# -----------------------------------------------------------------------------------------------------------------------------------------------------------------------
 plt.close('all')
 
 # data for plot
@@ -1223,19 +1258,21 @@ print (f"\nWorst season: {worst_season['season']} (${worst_season['avg_revenue']
 
 # BEST MONTH FOR REVENUE
 best_month = monthly_stats.loc[monthly_stats['avg_revenue'].idxmax()]
-print (f"\nPeak month: {best_month['month_name']} (${best_month['avg_revenue']:.1f}M avg, {best_month['blockbuster_rate']:.1f}% blockbuster rate)")
+print (f"Peak month: {best_month['month_name']} (${best_month['avg_revenue']:.1f}M avg, {best_month['blockbuster_rate']:.1f}% blockbuster rate)")
 
 # RELEASE VOLUME PATTERN
 most_releases = season_stats_ordered.loc[season_stats_ordered['count'].idxmax()]
-print (f"\nMost releases: {most_releases['season']} ({int(most_releases['count'])} films)")
+print (f"Most releases: {most_releases['season']} ({int(most_releases['count'])} films)")
 
 # INSIGHTS
-# Release timing significantly impact box office performance. Summer consistently dominates as a blockbuster season, with studios strategically releasing their biggest films during school vacation periods when families and teenagers have maximum availability. 
+# Release timing significantly impacts box office performance. Summer consistently dominates as a blockbuster season, with studios strategically releasing their biggest films during school vacation periods when families and teenagers have maximum availability. 
 # The 'summer blockbuster' phenomenon is real, these months generate substantially higher revenues and blockbuster rates than other season. Winter (holiday season) typically ranks second, capitalizing on Christmas
 # and New Year audiences. Spring and Fall serve as "dump months" for lower budget films and counter programming, showing notably lower revenues. This seasonal pattern drives studios' release calendars and explains why tentpole films are rarely released 
 # in February or September
 
-# 8) DOES THE GENRE OF A FILM INFLUENCE IT'S SUCCESS AND WHICH GENRES DOMINATE THE BOX OFFICE? --------------------------------------------------
+# ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+# 8) DOES THE GENRE OF A FILM INFLUENCE ITS SUCCESS AND WHICH GENRES DOMINATE THE BOX OFFICE? 
+# ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 plt.close('all')
 
 # data for plotting
@@ -1382,13 +1419,15 @@ plt.show()
 
 # INSIGHTS:
 # As we can see from the resulting plots, the genre of a film largely contributes to the commercial success of a film. Family films lead in revenue ($257.3 Million on average), followed
-# by Animation ($241.9 Million avg) and adventure ($223.1 Million avg), demonstrating that family friendly, spectacle driven content dominates box offices. Animations shows the highest 
-# blockbuster rate (32.9 %), with adventure (29.4%) and family (28.8 %) close behind, confirming these genres are the safest bets for blockbuster success. Family films also top popularity
+# by Animation ($241.9 Million avg) and adventure ($223.1 Million avg), demonstrating that family friendly, spectacle driven content dominates box offices. Animation shows the highest 
+# blockbuster rate (32.9 %), with Adventure (29.4%) and family (28.8 %) close behind, confirming these genres are the safest bets for blockbuster success. Family films also top popularity
 # scores (27.3), validating their broad audience appeal. The bubble chart (plot 4) reveals that while drama is the most produced genre, it generates low revenues and blockbuster rates, highlighting Hollywood's 
 # strategic shift toward high - budget franchise genres (Animation, Adventure, Sci-fi) over dramatic storytelling. Genre choice is then a critical success factor, studios prioritize spectacle and family appeal
 # over artistic merit to maximize their commercial returns.
 
-# 9) DOES THE TYPES OF PRODUCTION COMPANIES AND PRODUCTION COUNTRIES INFLUENCE THE BLOCKBUSTER SUCCESS OF FILMS? ---------------------------------
+# ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+# 9) DOES THE TYPES OF PRODUCTION COMPANIES AND PRODUCTION COUNTRIES INFLUENCE THE BLOCKBUSTER SUCCESS OF FILMS? 
+# ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 plt.close('all')
 
 # data for plotting
@@ -1581,7 +1620,11 @@ print(f"Films produced: {int(top_company['count'])}")
 # the leading company in blockbuster film production is Lucas film, with a blockbuster rate of 60% and an average revenue of 494 Millions
 # of dollars even though it didn't produced so many films in comparison to other companies (20 films were produced by Lucasfilms).
 
-# CONCLUSIONS: IS THERE A BLOCKBUSTER FORMULA FOR SUCCESS?
+# ------------------------------------------------------------------------------------------------------------------------------------------------------
+# CONCLUSIONS: 
+# IS THERE A BLOCKBUSTER FORMULA FOR SUCCESS?
+# ------------------------------------------------------------------------------------------------------------------------------------------------------
+
 # After the analysis conducted, the data reveals that there is NO guaranteed formula for blockbuster success, but there are some patterns 
 # within the data that can increase the likelihood of a film to become a blockbuster success. Successful blockbusters typically combine:
 
