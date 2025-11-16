@@ -1,18 +1,20 @@
+# Python
+__pycache__/
+*.py[cod]
 venv/
-credits.csv
-ratings.csv
-credits.csv
-ratings.csv
-credits.csv
-ratings.csv
-credits.csv
-ratings.csv
-data/
-credits.csv
-ratings.csv
-data/
-credits.csv
-ratings.csv
-data/
-_pycache_/
+
+# IDEs
+.vscode/
+
+# OS
+.DS_Store
+
+# Compreseed files
 *.zip
+
+# Output plotes
+outputs/*.png
+
+# Allow data files
+!data/movies_metadata.csv
+!data/movies_with_features.csv
