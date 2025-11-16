@@ -10,75 +10,88 @@ import json
 import math
 
 # -------------------------------------------------- DATA CLEANING AND PREPARATION ------------------------------------------------------------
-# load the dataset movie_metadata.csv into the environment
+# DATA LOADING AND INITIAL EXPLORATION:
+# ---------------------------------------------------------------------------------------------------------------------------------------------
+# loading the dataset
 data = pd.read_csv("movies_metadata.csv", low_memory = False, on_bad_lines = "skip")
 
-# to visualize the composition of the dataset, the head of it has been printed (specifically the first 8 rows)
+# visualization of the dataset composizion
 data.head(8)
 pd.set_option('display.max_columns', 100)
 
-# the name of the columns that we have in the dataset are the following
+# Exploration of the dataset structure
 data.columns.to_list()
 data.shape
 data.info()
 data.describe()
 
-# it is better to clear the column names, to avoid errors when dropping the columns that are not needed, using the command strip
+# Clean column names to avoid errors
 print(data.columns.tolist())
 data.columns = data.columns.str.strip()
 
-# Null values must be checked to handle them by substituting them or drop them. As it can be seen, there are several columns 
-# that contains missing values.
+# Check for missing values in the dataset
 data.isna().sum().sort_values(ascending = False).head(20)
 
-# columns that are irrelevant for the analysis must be dropped
+# ---------------------------------------------------------------------------------------------------------------------------------------------
+# COLUMN SELECTION:
+# ---------------------------------------------------------------------------------------------------------------------------------------------
+# Drop columns irrelevant for the blockbuster analysis
 columns_to_drop = ['adult','belongs_to_collection', 'homepage','poster_path', 'tagline', 'video', 'spoken_languages', 'backdrop_path',
                    'imdb_id', 'original_title', 'overview', 'status']
 data = data.drop(columns = columns_to_drop, errors = 'ignore')
 
-# then, the columns name are printed again to ensure that everything worked out correctly
+# Verify columns were dropped successfully
 data.columns.to_list()
 
-# parse the dates before drop
+# ---------------------------------------------------------------------------------------------------------------------------------------------
+# DATE HANDLING:
+# ---------------------------------------------------------------------------------------------------------------------------------------------
+# parsing release dates
 data ['release_date'] = pd.to_datetime(data['release_date'], errors = 'coerce')
 
-# drop the null rows for the 'title' and 'release_date' because they contain really few null values
+# Drop rows with missing title or release date
 data = data.dropna(subset = ['title', 'release_date'])
 
-# we extract the year, in case it is needed in the next analysis
+# extract year from the release date
 data['release_year'] = data['release_date'].dt.year
 
-# it is better to filter unrealistic release years
+# better to filter unrealistic release years
 data = data[(data['release_year'] >= 1900) & (data['release_year'] <= 2025)]
 
-# Now we show the changes
+# now, verify the changes made
 data.columns.to_list()
 
-# Now, in the remaining data, missing values will be handled
-# numeric types data
+# ---------------------------------------------------------------------------------------------------------------------------------------------
+# NUMERIC DATA TYPE CONVERSION:
+# ---------------------------------------------------------------------------------------------------------------------------------------------
+# Convert specified columns to numeric type
 numeric_columns = ['budget', 'revenue', 'runtime', 'vote_average', 'vote_count', 'popularity']
 for col in numeric_columns:
     if col in data.columns:
         data[col] = pd.to_numeric(data[col], errors = 'coerce')
 
-# separate the numerical and text columns 
+# identify numeric and categorical columns
 numeric_columns = data.select_dtypes(include = [np.number]).columns
 categorical_columns = data.select_dtypes(exclude = [np.number]).columns
 
-# first, we replace only runtime zeros with NaN values
+# ---------------------------------------------------------------------------------------------------------------------------------------------
+# MISSING VALUE HANDLING:
+# ---------------------------------------------------------------------------------------------------------------------------------------------
+# Replace zero runtime with NaN (invalid movie length)
 data['runtime'] = data['runtime'].replace(0, np.nan)
 
+# Impute missing values with median for reliability metrics
 safe_impute = ['runtime', 'popularity', 'vote_average', 'vote_count']
 for col in safe_impute:
     data[col] = data[col].fillna(data[col].median())
 
-# Filter extreme runtime values (so only reasonable movie lengths are retained)
+# Filter extreme runtime values (so only reasonable movie lengths are retained (40-300 minutes))
 data = data[(data['runtime'] >= 40) & (data['runtime'] <= 300)]
 
-# budget and revenues zeros has also to be fixed
+# Replace zero budget and revenue with NaN
 data[['budget', 'revenue']] = data[['budget', 'revenue']].replace(0, np.nan)
 
-# now we remove unrealistic values
+# now we remove unrealistic values of budget and revenue (< $1000)
 data = data[(data['budget'].isna()) | (data['budget'] >= 1000)]
 data = data[(data['revenue'].isna()) | (data['revenue'] >= 1000)]
 
@@ -88,29 +101,36 @@ missing_check = data.isna().sum()
 print("Missing values per column:")
 print(missing_check[missing_check > 0])
 
-# it is better to check if there are also duplicate data before going on with the analysis
-# first we check generally the duplicates in the dataset
+# -------------------------------------------------------------------------------------------------------------------------------------------
+# DUPLICATES REMOVAL:
+# -------------------------------------------------------------------------------------------------------------------------------------------
+# Checking for duplicate rows
 data.duplicated().sum()
 
-# The duplicated values are 17, so it is better to drop them
+# Drop duplicate rows
 data = data.drop_duplicates(keep = 'first')
 
 # then we check for duplicates also by title and release_date since some movies can have the same title but be different in release 
 # date, which is a common thing that can happen to remakes of old movies and so on.
 data.duplicated(subset = ['title', 'release_date']).sum()
 
-# In this case, the duplicate movies with the same name and exact date are 15, so also this ones shall be removed from the dataset
+# Drop duplicates with the same title and release_date
 data = data.drop_duplicates(subset = ['title','release_date'], keep = 'first')
 
-# now if we check again for duplicates there should be no one remaining
+# Verify that no duplicates remain after the cleaning
 data.duplicated().sum()
 data.duplicated(subset = ['title', 'release_date']).sum()
 
-# since in the dataset the value_count some counts are really few is it better to drop the values that are under or equal to 100 to have 
-# a more reliable mean of the opinions of the audiance about the movies
+# -------------------------------------------------------------------------------------------------------------------------------------------
+# VOTE COUNT FILTERING:
+# -------------------------------------------------------------------------------------------------------------------------------------------
+# Retain only movies with sufficient votes (>= 100) for reliable audience rating
 data = data [data['vote_count'] >= 100]
 
-# JSON fields parse
+# -------------------------------------------------------------------------------------------------------------------------------------------
+# JSON COLUMN PARSING:
+# -------------------------------------------------------------------------------------------------------------------------------------------
+# Parse JSON formatted columns
 json_columns = ['genres', 'production_companies', 'production_countries']
 
 for col in json_columns:
@@ -122,13 +142,16 @@ for col in json_columns:
         parsed = s.apply(lambda x: literal_eval(x) if x.strip().startswith('[') else [])
         data[col] = parsed.apply(lambda v:v if isinstance(v, list) else [])
 
-# now we verify at each of this columns now contains a list
+# Verifying that each column contains now a list after the parse
 data[json_columns].apply(lambda x: x.apply(type)).head()
 
-# and now the content of the parsed json columns
+# View content of the parsed JSON columns
 data[['genres', 'production_companies', 'production_countries']].head()
 
-# then, names from json columns will be extract as comma separated for better readability
+# -------------------------------------------------------------------------------------------------------------------------------------------
+# FEATURE EXTRACTION FROM JSON
+# -------------------------------------------------------------------------------------------------------------------------------------------
+# Extract names from JSON columns as comma - separated strings
 def extract_names(value):
     if not isinstance(value, list) or len(value) == 0:
         return pd.NA
@@ -143,39 +166,43 @@ data['countries_str'] = data['production_countries'].apply(extract_names)
 # the primary genre of the movies will be extract for further analysis purposes
 data['primary_genre'] = data['genres_str'].apply(lambda x: x.split(', ')[0] if pd.notna(x) else 'Unknown')
 
-# now, i drop
-# check the 0 values in the columns of the dataset, to see if they need some fixing
+# --------------------------------------------------------------------------------------------------------------------------------------------
+# ZERO VALUE VERIFICATION:
+# --------------------------------------------------------------------------------------------------------------------------------------------
+# Check remaining zero values in numeric columns
 for col in numeric_columns:
     zero_count = (data[col] == 0).sum()
     zero_percent = 100 * zero_count / len (data)
     print(f"{col}: {zero_count} zeros ({zero_percent:.2f}%)")
 
 
-# --------------------------------------------- FINAL SUMMARY OF THE CLEANED DATA --------------------------------------------------------------
+# ---------------------------------------------------------------------------------------------------------------------------------------------
+# FINAL CLEANED DATASET SUMMARY:
+# ---------------------------------------------------------------------------------------------------------------------------------------------
 print ("\n" + "="*60)
 print("Final cleaned dataset summary")
 print("="*60)
 
-# dataset shape
+# Dataset shape
 print(f"\nFinal dataset shape: {data.shape}")
 
-# missing values summary that were retained for further analysis
+# Missing values summary that were retained for further analysis
 print(f"\nBudget missing: {data['budget'].isna().sum()} ({100*data['budget'].isna().sum()/len(data):.1f}%)")
 print(f"Revenue missing: {data['revenue'].isna().sum()} ({100*data['revenue'].isna().sum()/len(data):.1f}%)")
 print(f"Movies with BOTH budget and revenue: {data[['budget', 'revenue']].notna().all(axis=1).sum()}")
 
-# check of the quality of the data
+# checking on the quality of the data
 print (f"\nData Quality checks:")
 print(f"  - Release year range: {data['release_year'].min():.0f} to {data['release_year'].max():.0f}")
 print(f"  - Runtime range: {data['runtime'].min():.0f} to {data['runtime'].max():.0f} minutes")
 print(f"  - Vote average range: {data['vote_average'].min():.1f} to {data['vote_average'].max():.1f}")
 print(f"  - Unique genres: {data['primary_genre'].nunique()}")
 
-# top genres found in the dataset
+# top genres distribution
 print (f"\nThe top 5 Primary Genres are:")
 print (data['primary_genre'].value_counts().head())
 
-# now we show the final columns list of the dataset
+# final columns retained for the analysis
 print(f"\nFinal columns retained: {data.columns.to_list()}")
 
 # we are not eliminating outliers (blockbuster films) during the data cleaning process because they can represent legitimate
@@ -1554,7 +1581,7 @@ print(f"Films produced: {int(top_company['count'])}")
 # the leading company in blockbuster film production is Lucas film, with a blockbuster rate of 60% and an average revenue of 494 Millions
 # of dollars even though it didn't produced so many films in comparison to other companies (20 films were produced by Lucasfilms).
 
-# CONCLUSIONS: IS THERE A BLOCKBUSTER FORMULA OF SUCCESS?
+# CONCLUSIONS: IS THERE A BLOCKBUSTER FORMULA FOR SUCCESS?
 # After the analysis conducted, the data reveals that there is NO guaranteed formula for blockbuster success, but there are some patterns 
 # within the data that can increase the likelihood of a film to become a blockbuster success. Successful blockbusters typically combine:
 
