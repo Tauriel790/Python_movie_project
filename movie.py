@@ -1640,13 +1640,3 @@ print(f"Films produced: {int(top_company['count'])}")
 # on franchise ready spectacles during peak seasos with 78.3% of films profitable but only 10% achieving true blockbuster status. Ultimately, data 
 # can improve the opportunity for success, but cannot guarantee it, the magic and risk of cinema lie in that
 # irreducible uncertainty
-
-
-
-
-
-
-
-
-
-
