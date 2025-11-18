@@ -342,7 +342,7 @@ def plot_rating_vs_revenue(df, save_path=None):
     ax2.set_ylabel('Average Revenue ($ Millions)', fontsize=12, fontweight='bold')
     ax2.set_title('Average Revenue by Rating Category', fontsize=13, fontweight='bold')
     
-    fig.suptitle('Rating vs Revenue',
+    fig.suptitle('Rating vs Revenue (data with outliers)',
                  fontsize=16, fontweight='bold', y=0.98)
     
     plt.tight_layout(rect=[0.02, 0, 1, 0.96])
@@ -384,7 +384,7 @@ def plot_runtime_analysis(df, save_path=None):
     
     ax1.scatter(blockbusters['runtime'], blockbusters['revenue'],
                 alpha=0.7, color='red', s=100, edgecolors='darkred', linewidth=1,
-                marker='*', label=f"Blockbusters (n={len(blockbusters)})")
+                marker='*', label=f"Blockbusters (n = {len(blockbusters)})")
     
     z_runtime = np.polyfit(runtime_revenue['runtime'], np.log10(runtime_revenue['revenue']), 1)
     p_runtime = np.poly1d(z_runtime)
@@ -392,7 +392,7 @@ def plot_runtime_analysis(df, save_path=None):
     trend_runtime = 10 ** p_runtime(runtime_range)
     
     ax1.plot(runtime_range, trend_runtime, color='darkgreen', linewidth=2.5, linestyle='--',
-             label=f"Trend (slope={z_runtime[0]:.3f})")
+             label=f"Trend (slope = {z_runtime[0]:.3f})")
     
     ax1.axvline(x=90, color='orange', linestyle=':', linewidth=1.5, alpha=0.6)
     ax1.axvline(x=120, color='orange', linestyle=':', linewidth=1.5, alpha=0.6)
@@ -403,6 +403,14 @@ def plot_runtime_analysis(df, save_path=None):
     ax1.set_ylabel('Revenue ($)', fontsize=12, fontweight='bold')
     ax1.set_title('Scatter plot: Runtime vs Revenue', fontsize=13, fontweight='bold')
     ax1.grid(True, alpha=0.3)
+    
+    correlation_runtime = runtime_revenue['runtime'].corr(runtime_revenue['revenue'])
+    ax1.text(0.05, 0.05, f'Correlation: {correlation_runtime:.3f}\nn = {len(runtime_revenue)}',
+             transform=ax1.transAxes, fontsize=11,
+             verticalalignment='bottom',
+             horizontalalignment='left',
+             bbox=dict(boxstyle='round', facecolor='lightyellow', alpha=0.9, edgecolor='black', linewidth=1.5))
+    
     ax1.legend(fontsize=10, loc='upper left')
     
     category_order = ['Short\n(<90 min)', 'Standard\n(90-120 min)', 'Long\n(120-150 min)', 'Epic\n(>=150 min)']
@@ -420,7 +428,7 @@ def plot_runtime_analysis(df, save_path=None):
     
     ax2.set_xlabel('Runtime Category', fontsize=12, fontweight='bold')
     ax2.set_ylabel('Average Revenue ($ Millions)', fontsize=12, fontweight='bold')
-    ax2.set_title('Average Revenue by Runtime Category', fontsize=13, fontweight='bold')
+    ax2.set_title('Bar Plot: Average Revenue by Runtime', fontsize=13, fontweight='bold')
     ax2.grid(True, alpha=0.3, axis='y')
     
     fig.suptitle('Runtime vs Revenue: Does Movie Length Affect Box Office Success?',
@@ -465,7 +473,7 @@ def plot_popularity_analysis(df, save_path=None):
     
     ax1.scatter(blockbusters['popularity'], blockbusters['revenue'],
                 alpha=0.7, color='orange', s=100, edgecolors='darkred', linewidth=1,
-                marker='*', label=f"Blockbusters (n={len(blockbusters)})")
+                marker='*', label=f"Blockbusters (n = {len(blockbusters)})")
     
     z_pop = np.polyfit(np.log10(popularity_revenue['popularity'] + 1),
                        np.log10(popularity_revenue['revenue']), 1)
@@ -476,7 +484,7 @@ def plot_popularity_analysis(df, save_path=None):
     trend_pop = 10 ** p_pop(np.log10(pop_range))
     
     ax1.plot(pop_range, trend_pop, color='darkgreen', linewidth=2.5, linestyle='--',
-             label=f"Trend (slope={z_pop[0]:.2f})")
+             label=f"Trend (slope = {z_pop[0]:.2f})")
     
     ax1.axvline(x=5, color='orange', linestyle=':', linewidth=1.5, alpha=0.6)
     ax1.axvline(x=15, color='orange', linestyle=':', linewidth=1.5, alpha=0.6)
@@ -488,6 +496,14 @@ def plot_popularity_analysis(df, save_path=None):
     ax1.set_ylabel('Revenue ($)', fontsize=12, fontweight='bold')
     ax1.set_title('Scatter plot: Popularity vs Revenue', fontsize=13, fontweight='bold')
     ax1.grid(True, alpha=0.3)
+    
+    correlation_pop = popularity_revenue['popularity'].corr(popularity_revenue['revenue'])
+    ax1.text(0.05, 0.95, f"Correlation: {correlation_pop:.3f}\nn = {len(popularity_revenue)}",
+             transform=ax1.transAxes, fontsize=11,
+             verticalalignment='top',
+             bbox=dict(boxstyle='round', facecolor='lightblue', alpha=0.9,
+                       edgecolor='black', linewidth=1.5))
+    
     ax1.legend(fontsize=10, loc='lower right')
     
     category_order = ['Low\n(<5)', 'Medium\n(5-15)', 'High\n(15-30)', 'Very High\n(>=30)']
@@ -505,7 +521,7 @@ def plot_popularity_analysis(df, save_path=None):
     
     ax2.set_xlabel('Popularity Category', fontsize=12, fontweight='bold')
     ax2.set_ylabel('Average Revenue ($ Millions)', fontsize=12, fontweight='bold')
-    ax2.set_title('Average Revenue by Popularity', fontsize=13, fontweight='bold')
+    ax2.set_title('Bar Plot: Average Revenue by Popularity', fontsize=13, fontweight='bold')
     ax2.grid(True, alpha=0.3, axis='y')
     
     fig.suptitle('Popularity vs Revenue: Does Buzz Equal Box Office Success?',
@@ -567,7 +583,7 @@ def plot_temporal_trends(df, save_path=None):
     
     ax2.set_xlabel('Decade', fontsize=11, fontweight='bold')
     ax2.set_ylabel('Average Budget ($ Millions)', fontsize=11, fontweight='bold')
-    ax2.set_title('Budget Growth by Decade', fontsize=11, fontweight='bold')
+    ax2.set_title('Budget Growth by Decade', fontsize=11, fontweight='bold', pad=15)
     ax2.tick_params(axis='x', rotation=45, labelsize=9)
     ax2.grid(True, alpha=0.3, axis='y')
     
@@ -581,7 +597,7 @@ def plot_temporal_trends(df, save_path=None):
     
     ax3.set_xlabel('Decade', fontsize=11, fontweight='bold')
     ax3.set_ylabel('Average Rating', fontsize=11, fontweight='bold')
-    ax3.set_title('Film Quality by Decade', fontsize=11, fontweight='bold')
+    ax3.set_title('Film Quality by Decade', fontsize=11, fontweight='bold', pad=15)
     ax3.tick_params(axis='x', rotation=45, labelsize=9)
     ax3.set_ylim(5.5, 7.6)
     ax3.grid(True, alpha=0.3, axis='y')
@@ -596,7 +612,7 @@ def plot_temporal_trends(df, save_path=None):
     
     ax4.set_xlabel('Decade', fontsize=11, fontweight='bold')
     ax4.set_ylabel('Blockbuster Rate (%)', fontsize=11, fontweight='bold')
-    ax4.set_title('Blockbuster Concentration by Decade', fontsize=11, fontweight='bold')
+    ax4.set_title('Blockbuster Concentration by Decade', fontsize=11, fontweight='bold', pad=15)
     ax4.tick_params(axis='x', rotation=45, labelsize=9)
     ax4.grid(True, alpha=0.3, axis='y')
     
@@ -653,7 +669,7 @@ def plot_seasonal_patterns(df, save_path=None):
     
     ax1.set_xlabel('Release Season', fontsize=12, fontweight='bold')
     ax1.set_ylabel('Average Revenue ($ Millions)', fontsize=12, fontweight='bold')
-    ax1.set_title('Average Revenue by Season', fontsize=13, fontweight='bold')
+    ax1.set_title('Average Revenue by Release Season', fontsize=13, fontweight='bold')
     ax1.grid(True, alpha=0.3, axis='y')
     
     bars2 = ax2.bar(season_stats_ordered['season'], season_stats_ordered['blockbuster_rate'],
@@ -687,6 +703,7 @@ def plot_seasonal_patterns(df, save_path=None):
     ax3.set_title('Average Revenue by Month (Peak in Yellow)', fontsize=13, fontweight='bold')
     ax3.tick_params(axis='x', rotation=45, labelsize=10)
     ax3.grid(True, alpha=0.3, axis='y')
+    ax3.set_ylim(0, max(monthly_stats['avg_revenue']) * 1.15)
     
     bars4 = ax4.bar(season_stats_ordered['season'], season_stats_ordered['count'],
                     color=[season_colors[s] for s in season_stats_ordered['season']],
@@ -701,7 +718,7 @@ def plot_seasonal_patterns(df, save_path=None):
     ax4.set_ylabel('Number of Films Released', fontsize=12, fontweight='bold')
     ax4.set_title('Release Volume by Season', fontsize=13, fontweight='bold')
     
-    fig.suptitle('Release Timing Strategy: Does When You Release Matter?',
+    fig.suptitle('Release Timing Strategy: Does When You Release a Film Matter?',
                  fontsize=16, fontweight='bold', y=0.995)
     
     plt.tight_layout(rect=[0, 0.02, 1, 0.985], h_pad=3.5, w_pad=2.5)
@@ -713,39 +730,299 @@ def plot_seasonal_patterns(df, save_path=None):
 
 
 def plot_genre_analysis(df, save_path=None):
-    """Create horizontal bar chart of top genres by revenue."""
+    """Create comprehensive 4-plot genre analysis matching original code."""
     plt.close('all')
-    fig = plt.figure(figsize=(12, 8))
     
-    genre_data = df[['primary_genre', 'revenue']].dropna()
+    genre_data = df[['primary_genre', 'revenue', 'popularity', 'is_blockbuster', 'vote_average']].dropna()
+    
     genre_stats = genre_data.groupby('primary_genre').agg({
-        'revenue': ['mean', 'count']
+        'revenue': ['mean', 'count'],
+        'popularity': 'mean',
+        'vote_average': 'mean',
+        'is_blockbuster': lambda x: (x.sum() / len(x) * 100) if len(x) > 0 else 0
     }).reset_index()
     
-    genre_stats.columns = ['genre', 'avg_revenue', 'count']
+    genre_stats.columns = ['genre', 'avg_revenue', 'count', 'avg_popularity', 'avg_rating', 'blockbuster_rate']
     genre_stats['avg_revenue'] = genre_stats['avg_revenue'] / 1e6
-    genre_stats = genre_stats[genre_stats['count'] >= 50]
-    genre_stats = genre_stats.sort_values('avg_revenue', ascending=False).head(10)
     
-    bars = plt.barh(range(len(genre_stats)), genre_stats['avg_revenue'],
-                    color='steelblue', alpha=0.8, edgecolor='black', linewidth=1.5)
+    # Filter genres with at least 50 films
+    genre_stats = genre_stats[genre_stats['count'] >= 50].copy()
+    genre_stats_sorted = genre_stats.sort_values('avg_revenue', ascending=False)
     
-    bars[0].set_color('red')
-    bars[0].set_edgecolor('darkred')
-    bars[0].set_linewidth(2.5)
+    # Create 2x2 subplot grid
+    fig = plt.figure(figsize=(22, 17))
+    gs = fig.add_gridspec(2, 2, hspace=0.5, wspace=0.3, left=0.10, right=0.96, top=0.93, bottom=0.08)
     
-    plt.yticks(range(len(genre_stats)), genre_stats['genre'], fontsize=11)
+    ax1 = fig.add_subplot(gs[0, 0])
+    ax2 = fig.add_subplot(gs[0, 1])
+    ax3 = fig.add_subplot(gs[1, 0])
+    ax4 = fig.add_subplot(gs[1, 1])
     
-    for i, (idx, row) in enumerate(genre_stats.iterrows()):
-        plt.text(row['avg_revenue'] + 5, i, f"${row['avg_revenue']:.1f}M",
-                ha='left', va='center', fontsize=10, fontweight='bold')
+    # PLOT 1: Top 10 genres by average revenue
+    top_revenue_genres = genre_stats_sorted.head(10)
+    bars1 = ax1.barh(range(len(top_revenue_genres)), top_revenue_genres['avg_revenue'],
+                     color='steelblue', alpha=0.8, edgecolor='black', linewidth=1.5)
     
-    plt.xlabel('Average Revenue ($ Millions)', fontsize=12, fontweight='bold')
-    plt.ylabel('Genre', fontsize=12, fontweight='bold')
-    plt.title('Top 10 Genres by Average Revenue', fontsize=14, fontweight='bold')
-    plt.gca().invert_yaxis()
-    plt.grid(True, alpha=0.3, axis='x')
-    plt.tight_layout()
+    bars1[0].set_color('red')
+    bars1[0].set_edgecolor('darkred')
+    bars1[0].set_linewidth(2.5)
+    
+    ax1.set_yticks(range(len(top_revenue_genres)))
+    ax1.set_yticklabels(top_revenue_genres['genre'], fontsize=11)
+    
+    for i, bar in enumerate(bars1):
+        width = bar.get_width()
+        ax1.text(width, bar.get_y() + bar.get_height()/2.,
+                 f"${width:.1f}M", ha='left', va='center', fontsize=10, fontweight='bold')
+    
+    ax1.set_xlabel('Average Revenue ($ Millions)', fontsize=12, fontweight='bold')
+    ax1.set_ylabel('Genre', fontsize=12, fontweight='bold')
+    ax1.set_title('Top 10 Genres by Average Revenue', fontsize=13, fontweight='bold')
+    ax1.invert_yaxis()
+    ax1.grid(True, alpha=0.3, axis='x')
+    ax1.set_xlim(0, max(top_revenue_genres['avg_revenue']) * 1.15)
+    
+    # PLOT 2: Top 10 genres by blockbuster rate
+    top_blockbuster_genres = genre_stats.nlargest(10, 'blockbuster_rate')
+    bars2 = ax2.barh(range(len(top_blockbuster_genres)), top_blockbuster_genres['blockbuster_rate'],
+                     color='orange', alpha=0.8, edgecolor='black', linewidth=1.5)
+    
+    bars2[0].set_color('red')
+    bars2[0].set_edgecolor('darkred')
+    bars2[0].set_linewidth(2.5)
+    
+    ax2.set_yticks(range(len(top_blockbuster_genres)))
+    ax2.set_yticklabels(top_blockbuster_genres['genre'], fontsize=11)
+    
+    for i, bar in enumerate(bars2):
+        width = bar.get_width()
+        ax2.text(width, bar.get_y() + bar.get_height()/2.,
+                 f"{width:.1f}%", ha='left', va='center', fontsize=10, fontweight='bold')
+    
+    ax2.set_xlabel('Blockbuster Rate (%)', fontsize=12, fontweight='bold')
+    ax2.set_ylabel('Genre', fontsize=12, fontweight='bold')
+    ax2.set_title('Top 10 Genres by Blockbuster Rate', fontsize=13, fontweight='bold')
+    ax2.invert_yaxis()
+    ax2.grid(True, alpha=0.3, axis='x')
+    ax2.set_xlim(0, max(top_blockbuster_genres['blockbuster_rate']) * 1.12)
+    
+    # PLOT 3: Top 10 genres by average popularity
+    top_popularity_genres = genre_stats.nlargest(10, 'avg_popularity')
+    bars3 = ax3.barh(range(len(top_popularity_genres)), top_popularity_genres['avg_popularity'],
+                     color='purple', alpha=0.8, edgecolor='black', linewidth=1.5)
+    
+    bars3[0].set_color('darkviolet')
+    bars3[0].set_edgecolor('black')
+    bars3[0].set_linewidth(2.5)
+    
+    ax3.set_yticks(range(len(top_popularity_genres)))
+    ax3.set_yticklabels(top_popularity_genres['genre'], fontsize=11)
+    
+    for i, bar in enumerate(bars3):
+        width = bar.get_width()
+        ax3.text(width, bar.get_y() + bar.get_height()/2.,
+                 f"{width:.1f}", ha='left', va='center', fontsize=10, fontweight='bold')
+    
+    ax3.set_xlabel('Average Popularity Score', fontsize=12, fontweight='bold')
+    ax3.set_ylabel('Genre', fontsize=12, fontweight='bold')
+    ax3.set_title('Top 10 Genres by Average Popularity', fontsize=13, fontweight='bold')
+    ax3.invert_yaxis()
+    ax3.grid(True, alpha=0.3, axis='x')
+    ax3.set_xlim(0, max(top_popularity_genres['avg_popularity']) * 1.12)
+    
+    # PLOT 4: Genre success matrix (bubble chart)
+    top_count_genres = genre_stats.nlargest(12, 'count')
+    
+    scatter = ax4.scatter(top_count_genres['avg_revenue'],
+                          top_count_genres['blockbuster_rate'],
+                          s=top_count_genres['count'] * 2,
+                          c=top_count_genres['avg_popularity'],
+                          cmap='viridis',
+                          alpha=0.6,
+                          edgecolors='black',
+                          linewidth=1.5)
+    
+    for _, row in top_count_genres.iterrows():
+        ax4.annotate(row['genre'],
+                     (row['avg_revenue'], row['blockbuster_rate']),
+                     fontsize=9,
+                     ha='center',
+                     va='center',
+                     fontweight='bold')
+    
+    ax4.set_xlabel('Average Revenue ($ Millions)', fontsize=12, fontweight='bold')
+    ax4.set_ylabel('Blockbuster Rate (%)', fontsize=12, fontweight='bold')
+    ax4.set_title('Genre Success Matrix (Size = Film Count, Color = Popularity)', fontsize=13, fontweight='bold')
+    ax4.grid(True, alpha=0.3)
+    
+    color_bar = plt.colorbar(scatter, ax=ax4)
+    color_bar.set_label('Avg Popularity', fontsize=10, fontweight='bold')
+    
+    fig.suptitle('Genre Dominance: Which Types of Films Rule the Box Office?',
+                 fontsize=16, fontweight='bold', y=0.995)
+    
+    plt.tight_layout(rect=[0, 0.01, 1, 0.99], h_pad=3, w_pad=2.5)
+    
+    if save_path:
+        plt.savefig(save_path, dpi=300, bbox_inches='tight')
+    
+    return fig
+
+
+def plot_production_origins(df, save_path=None):
+    """Create production country and company analysis with 4 plots."""
+    plt.close('all')
+    
+    country_data = df[['countries_str', 'revenue', 'is_blockbuster', 'popularity']].dropna()
+    company_data = df[['companies_str', 'revenue', 'is_blockbuster', 'popularity']].dropna()
+    
+    # Extract primary country and company
+    country_data['primary_country'] = country_data['countries_str'].apply(
+        lambda x: x.split(',')[0].strip() if pd.notna(x) and x != '' else 'Unknown'
+    )
+    
+    company_data['primary_company'] = company_data['companies_str'].apply(
+        lambda x: x.split(',')[0].strip() if pd.notna(x) and x != '' else 'Unknown'
+    )
+    
+    # Country statistics
+    country_stats = country_data.groupby('primary_country').agg({
+        'revenue': ['mean', 'count'],
+        'popularity': 'mean',
+        'is_blockbuster': lambda x: (x.sum() / len(x) * 100) if len(x) > 0 else 0
+    }).reset_index()
+    
+    country_stats.columns = ['country', 'avg_revenue', 'count', 'avg_popularity', 'blockbuster_rate']
+    country_stats['avg_revenue'] = country_stats['avg_revenue'] / 1e6
+    country_stats = country_stats[country_stats['count'] >= 100].copy()
+    country_stats_sorted = country_stats.sort_values('avg_revenue', ascending=False)
+    
+    # Company statistics
+    company_stats = company_data.groupby('primary_company').agg({
+        'revenue': ['mean', 'count'],
+        'popularity': 'mean',
+        'is_blockbuster': lambda x: (x.sum() / len(x) * 100) if len(x) > 0 else 0
+    }).reset_index()
+    
+    company_stats.columns = ['company', 'avg_revenue', 'count', 'avg_popularity', 'blockbuster_rate']
+    company_stats['avg_revenue'] = company_stats['avg_revenue'] / 1e6
+    company_stats = company_stats[company_stats['count'] >= 20].copy()
+    company_stats_sorted = company_stats.sort_values('avg_revenue', ascending=False)
+    
+    # Create figure with 2x2 grid
+    fig = plt.figure(figsize=(24, 18))
+    gs = fig.add_gridspec(2, 2, left=0.22, right=0.98, bottom=0.07, top=0.90, hspace=0.46, wspace=0.90)
+    
+    ax1 = fig.add_subplot(gs[0, 0])
+    ax2 = fig.add_subplot(gs[0, 1])
+    ax3 = fig.add_subplot(gs[1, 0])
+    ax4 = fig.add_subplot(gs[1, 1])
+    
+    # PLOT 1: Top 12 countries by average revenue
+    top_countries_revenue = country_stats_sorted.head(12)
+    bars1 = ax1.barh(range(len(top_countries_revenue)), top_countries_revenue['avg_revenue'],
+                     color='green', alpha=0.8, edgecolor='black', linewidth=1.5)
+    
+    bars1[0].set_color('yellow')
+    bars1[0].set_edgecolor('orange')
+    bars1[0].set_linewidth(2.5)
+    
+    ax1.set_yticks(range(len(top_countries_revenue)))
+    ax1.set_yticklabels(top_countries_revenue['country'], fontsize=11)
+    
+    for i, (idx, row) in enumerate(top_countries_revenue.iterrows()):
+        ax1.text(row['avg_revenue'] + 3, i,
+                 f"${row['avg_revenue']:.1f}M", ha='left', va='center', fontsize=10, fontweight='bold')
+    
+    ax1.set_xlabel('Average Revenue ($ Millions)', fontsize=12, fontweight='bold')
+    ax1.set_ylabel('Country', fontsize=12, fontweight='bold')
+    ax1.set_title('Top 12 Countries by Average Revenue', fontsize=14, fontweight='bold', pad=20)
+    ax1.invert_yaxis()
+    ax1.grid(True, alpha=0.3, axis='x')
+    ax1.set_xlim(0, max(top_countries_revenue['avg_revenue']) * 1.25)
+    
+    # PLOT 2: Top 12 countries by blockbuster rate
+    top_countries_blockbuster = country_stats.nlargest(12, 'blockbuster_rate')
+    bars2 = ax2.barh(range(len(top_countries_blockbuster)), top_countries_blockbuster['blockbuster_rate'],
+                     color='orange', alpha=0.8, edgecolor='black', linewidth=1.5)
+    
+    bars2[0].set_color('red')
+    bars2[0].set_edgecolor('darkred')
+    bars2[0].set_linewidth(2.5)
+    
+    ax2.set_yticks(range(len(top_countries_blockbuster)))
+    ax2.set_yticklabels(top_countries_blockbuster['country'], fontsize=11)
+    
+    for i, (idx, row) in enumerate(top_countries_blockbuster.iterrows()):
+        ax2.text(row['blockbuster_rate'] + 0.5, i,
+                 f"{row['blockbuster_rate']:.1f}%", ha='left', va='center', fontsize=10, fontweight='bold')
+    
+    ax2.set_xlabel('Blockbuster Rate (%)', fontsize=12, fontweight='bold')
+    ax2.set_ylabel('Country', fontsize=12, fontweight='bold')
+    ax2.set_title('Top 12 Countries by Blockbuster Rate', fontsize=14, fontweight='bold', pad=20)
+    ax2.invert_yaxis()
+    ax2.grid(True, alpha=0.3, axis='x')
+    ax2.set_xlim(0, max(top_countries_blockbuster['blockbuster_rate']) * 1.20)
+    
+    # PLOT 3: Top 12 companies by average revenue
+    top_companies_revenue = company_stats_sorted.head(12)
+    bars3 = ax3.barh(range(len(top_companies_revenue)), top_companies_revenue['avg_revenue'],
+                     color='purple', alpha=0.8, edgecolor='black', linewidth=1.5)
+    
+    bars3[0].set_color('darkviolet')
+    bars3[0].set_edgecolor('black')
+    bars3[0].set_linewidth(2.5)
+    
+    ax3.set_yticks(range(len(top_companies_revenue)))
+    ax3.set_yticklabels(top_companies_revenue['company'], fontsize=11)
+    
+    for i, (idx, row) in enumerate(top_companies_revenue.iterrows()):
+        ax3.text(row['avg_revenue'] + 3, i,
+                 f"${row['avg_revenue']:.1f}M", ha='left', va='center', fontsize=10, fontweight='bold')
+    
+    ax3.set_xlabel('Average Revenue ($ Millions)', fontsize=12, fontweight='bold')
+    ax3.set_ylabel('Production Company', fontsize=12, fontweight='bold')
+    ax3.set_title('Top 12 Companies by Average Revenue', fontsize=14, fontweight='bold', pad=20)
+    ax3.invert_yaxis()
+    ax3.grid(True, alpha=0.3, axis='x')
+    ax3.set_xlim(0, max(top_companies_revenue['avg_revenue']) * 1.25)
+    
+    # PLOT 4: Top 12 companies by blockbuster rate
+    top_companies_blockbuster = company_stats.nlargest(12, 'blockbuster_rate')
+    bars4 = ax4.barh(range(len(top_companies_blockbuster)), top_companies_blockbuster['blockbuster_rate'],
+                     color='teal', alpha=0.8, edgecolor='black', linewidth=1.5)
+    
+    bars4[0].set_color('darkgreen')
+    bars4[0].set_edgecolor('black')
+    bars4[0].set_linewidth(2.5)
+    
+    ax4.set_yticks(range(len(top_companies_blockbuster)))
+    ax4.set_yticklabels(top_companies_blockbuster['company'], fontsize=11)
+    
+    for i, (idx, row) in enumerate(top_companies_blockbuster.iterrows()):
+        ax4.text(row['blockbuster_rate'] + 0.5, i,
+                 f"{row['blockbuster_rate']:.1f}%", ha='left', va='center', fontsize=10, fontweight='bold')
+    
+    ax4.set_xlabel('Blockbuster Rate (%)', fontsize=12, fontweight='bold')
+    ax4.set_ylabel('Production Company', fontsize=12, fontweight='bold')
+    ax4.set_title('Top 12 Companies by Blockbuster Rate', fontsize=14, fontweight='bold', pad=20)
+    ax4.invert_yaxis()
+    ax4.grid(True, alpha=0.3, axis='x')
+    ax4.set_xlim(0, max(top_companies_blockbuster['blockbuster_rate']) * 1.20)
+    
+    # Adjust spacing
+    for ax in (ax1, ax2, ax3, ax4):
+        ax.margins(x=0.08)
+        ax.tick_params(axis='y', labelsize=11)
+        ax.set_title(ax.get_title(), pad=14)
+        
+        if ax in (ax1, ax3):
+            ax.tick_params(axis='y', pad=6)
+        else:
+            ax.tick_params(axis='y', pad=0)
+    
+    fig.suptitle('Production Origins: Do Country & Company Determine Success?',
+                 fontsize=18, fontweight='bold', y=0.985)
     
     if save_path:
         plt.savefig(save_path, dpi=300, bbox_inches='tight')
@@ -794,5 +1071,8 @@ def generate_all_plots(df, output_dir='outputs'):
     print("Creating Genre analysis plot...")
     plot_genre_analysis(df, f"{output_dir}/genre_analysis.png")
     
-    print("Visualization generation complete!")
-    print(f"Plots saved in '{output_dir}/' directory")
+    print("Creating Production origins plot...")
+    plot_production_origins(df, f"{output_dir}/production_origins.png")
+    
+    print("\nVisualization generation complete!")
+    print(f"All plots saved in '{output_dir}/' directory")
