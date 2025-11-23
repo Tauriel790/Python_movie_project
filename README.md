@@ -14,11 +14,11 @@ This study follows a complete data pipeline:
 * visual analytics
 * final insights on the blockbuster formula
 
-It concludes with an interactive **Streamlit application** that allows users to explore each analytical dimension dynamically.
+The project concludes with an interactive **Streamlit application** that allows users to explore each analytical dimension dynamically.
 
 ---
 
-# Original dataset description
+# Dataset Description
 
 ### **1. Raw Dataset - "movies_metadata.csv"**
 
@@ -33,11 +33,11 @@ However, the raw file also contains:
 
 - Extensive missing values
 - JSON-formatted fields stored as text
-- Redundant or irrelevant variables (like id, imdb_id ....)
+- Redundant or irrelevant variables (like id,    imdb_id ....)
 - Outliers and structural inconsistencies
 - Non-numeric entries in numeric fields
 
-A substantial cleaning process was required to obtain an analytically reliable version of the dataset.
+A substantial cleaning process was required to obtain an analytically reliable version of the dataset. The outliers were retained since the purpose of the analysis is to find the blockbuster formula.
 
 ---
 
@@ -117,3 +117,5 @@ You can also access the app from the following link:
 This project demonstrates that box office success arises from a complex interplay of financial, structural, temporal, and genre-related factors rather than from a single deterministic “blockbuster formula.” While high budgets, strong pre-release popularity, strategic release timing, and family-oriented or spectacle-driven genres consistently characterize the top-grossing films, none of these elements alone guarantees commercial success.
 
 Across the findings of the analysis, an important theme emerges: data can illuminate the conditions that make blockbuster success more likely, but cannot eliminate the inherent uncertainty of filmmaking. Creative resonance, cultural timing, competition, and external events remain unpredictable and fundamentally shape audience response.
+
+
