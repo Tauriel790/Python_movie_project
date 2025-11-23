@@ -111,7 +111,7 @@ streamlit run app.py
 
 You can also access the app from the following link:
 
-- http://localhost:8501/
+- [link](https://pythonmovieprojectapp.streamlit.app/)
 
 ## Conclusions
 This project demonstrates that box office success arises from a complex interplay of financial, structural, temporal, and genre-related factors rather than from a single deterministic “blockbuster formula.” While high budgets, strong pre-release popularity, strategic release timing, and family-oriented or spectacle-driven genres consistently characterize the top-grossing films, none of these elements alone guarantees commercial success.
