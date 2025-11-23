@@ -41,7 +41,7 @@ A substantial cleaning process was required to obtain an analytically reliable v
 
 ---
 
-### **2. Cleaned Dataset - "movies_with_features.csv"
+### **2. Cleaned Dataset - "movies_with_features.csv"**
 
 After data cleaning and feature engineering, the analytical dataset contains:
 
