@@ -1,11 +1,8 @@
-# first, libraries needed for the project are loaded into the environment
 import pandas as pd
 import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
-import ast
 from ast import literal_eval
-import json
 import math
 
 # -------------------------------------------------- DATA CLEANING AND PREPARATION ------------------------------------------------------------
@@ -14,11 +11,10 @@ import math
 # loading the dataset
 data = pd.read_csv("data/movies_metadata.csv", low_memory = False, on_bad_lines = "skip")
 
-# visualization of the dataset composizion
+# visualization of the dataset composizion and structure
 data.head(8)
 pd.set_option('display.max_columns', 100)
 
-# Exploration of the dataset structure
 data.columns.to_list()
 data.shape
 data.info()
@@ -34,27 +30,26 @@ data.isna().sum().sort_values(ascending = False).head(20)
 # ---------------------------------------------------------------------------------------------------------------------------------------------
 # COLUMN SELECTION:
 # ---------------------------------------------------------------------------------------------------------------------------------------------
-# Drop columns irrelevant for the blockbuster analysis
+# Drop columns irrelevant for blockbuster analysis
 columns_to_drop = ['adult','belongs_to_collection', 'homepage','poster_path', 'tagline', 'video', 'spoken_languages', 'backdrop_path',
                    'imdb_id', 'original_title', 'overview', 'status']
 data = data.drop(columns = columns_to_drop, errors = 'ignore')
 
-# Verify columns were dropped successfully
 data.columns.to_list()
 
 # ---------------------------------------------------------------------------------------------------------------------------------------------
 # DATE HANDLING:
 # ---------------------------------------------------------------------------------------------------------------------------------------------
-# parsing release dates
+# Parsing release dates
 data ['release_date'] = pd.to_datetime(data['release_date'], errors = 'coerce')
 
 # Drop rows with missing title or release date
 data = data.dropna(subset = ['title', 'release_date'])
 
-# extract year from the release date
+# Extract year from the release date
 data['release_year'] = data['release_date'].dt.year
 
-# better to filter unrealistic release years
+# Filter unrealistic release years
 data = data[(data['release_year'] >= 1900) & (data['release_year'] <= 2025)]
 
 # now, verify the changes made
@@ -69,7 +64,6 @@ for col in numeric_columns:
     if col in data.columns:
         data[col] = pd.to_numeric(data[col], errors = 'coerce')
 
-# identify numeric and categorical columns
 numeric_columns = data.select_dtypes(include = [np.number]).columns
 categorical_columns = data.select_dtypes(exclude = [np.number]).columns
 
@@ -166,6 +160,21 @@ data['countries_str'] = data['production_countries'].apply(extract_names)
 data['primary_genre'] = data['genres_str'].apply(lambda x: x.split(', ')[0] if pd.notna(x) else 'Unknown')
 
 # --------------------------------------------------------------------------------------------------------------------------------------------
+# DIAGNOSTIC CHECK - AFTER CLEANING
+# --------------------------------------------------------------------------------------------------------------------------------------------
+
+print(f"\n{'='*80}")
+print("AFTER CLEANING - DIAGNOSTIC CHECK (MAIN CODE)")
+print(f"{'='*80}")
+print(f"Total rows: {len(data)}")
+print(f"Budget missing: {data['budget'].isna().sum()}")
+print(f"Revenue missing: {data['revenue'].isna().sum()}")
+print(f"Both budget AND revenue present: {data[['budget', 'revenue']].notna().all(axis=1).sum()}")
+print(f"Columns present: {data.columns.tolist()}")
+print(f"{'='*80}\n")
+
+
+# --------------------------------------------------------------------------------------------------------------------------------------------
 # ZERO VALUE VERIFICATION:
 # --------------------------------------------------------------------------------------------------------------------------------------------
 # Check remaining zero values in numeric columns
@@ -205,9 +214,8 @@ print (data['primary_genre'].value_counts().head())
 print(f"\nFinal columns retained: {data.columns.to_list()}")
 
 # we are not eliminating outliers (blockbuster films) during the data cleaning process because they can represent legitimate
-# box office phenomena (films like Avatar, Titanic ...) and are essential to understanding the film industy's 'blockbuster model
-# Removing them would mispresent how the industry actually operates. However, we will analyze the data both with and without outliers
-# to understand their impact on our findings
+# box office phenomena (films like Avatar, Titanic ...) and are essential to understanding the film industry's "blockbuster" model
+# Removing them would misrepresent how the industry actually operates. 
 
 
 # --------------------------------------------------- FEATURE ENGINEERING ----------------------------------------------------------------------
@@ -267,7 +275,7 @@ data = data.drop(columns = json_columns, errors = 'ignore')
 print(data.columns.to_list())
 data[['genres_str', 'companies_str', 'countries_str', 'primary_genre']].dtypes
 
-# then, before starting the analysis save cleaned and feature-engineered dataset
+# then, before starting the analysis we save the cleaned and feature-engineered version of the dataset
 data.to_csv('data/movies_with_features.csv', index = False)
 
 # ---------------------------------------------------- EXPLORATORY DATA ANALYSIS (EDA) ---------------------------------------------------------------
@@ -363,7 +371,6 @@ for j in range(i + 1, len(axes)):
     axes[j].set_visible(False)
 
 plt.tight_layout(pad = 2.0)
-plt.savefig('density_plots.png', dpi = 300, bbox_inches = 'tight')
 plt.show()
 
 # -----------------------------------------------------------------------------------------------------------------------------------------------
@@ -373,7 +380,6 @@ plt.show()
 # -----------------------------------------------------------------------------------------------------------------------------------------------
 # This is the most critical relationship for understanding blockbuster success
 
-# PIE CHART OF THE DISTRIBUTION OF THE PROFITABLE AND UNPROFITABLE FILMS
 # to show this relationship, a scatter plot with a trend line will be used
 plt.close('all')
 
@@ -409,34 +415,32 @@ plt.grid(True, alpha = 0.3)
 plt.tight_layout()
 plt.show()
 
-# the scatter plot reveals a strong positive correlation (slope = 0.78) between the budget and the revenue of the movies, indicating that
+# The scatter plot reveals a strong positive correlation (slope = 0.78) between the budget and the revenue of the movies, indicating that
 # higher budgets generally lead to higher revenues. However, the relationship shows diminishing returns, meaning that doubling the budget 
-# doesn't automatically double the revenue. The wide scatter underlines the fact that the budget alone doesn't guarantee the succes of the 
-# movie. Many high budget films underperform and some low budget ones overperform and becomes suprise hits. This suggest that there is no
-# simple formula for blockbuster success. Other factors like quality, timing, and audience appeal metter when considering the success of
+# doesn't automatically double the revenue. The wide scatter underlines the fact that the budget alone doesn't guarantee the success of the 
+# movie. Many high budget films underperform and some low budget ones overperform and become surprise hits. This suggests that there is no
+# simple formula for blockbuster success. Other factors like quality, timing, and audience appeal matter when considering the success of
 # a film. 
 
-# after the plotting is is better to show also these key insights to better understand the relationship already analyzed
-
-# correlation
+# Calculate correlation coefficient
 correlation = clean_data['budget'].corr(clean_data['revenue'])
 print (f"The correlation coefficient is: {correlation.round(2)}")      
 
-# now we analyze the budget categories included in the plot
+# Analysis of the budget categories
 low_budget = clean_data[clean_data['budget'] < 1e6]
 mid_budget = clean_data[(clean_data['budget'] >= 1e6) & (clean_data['budget'] < 5e7)]
 high_budget = clean_data[clean_data['budget'] >= 5e7]
 
-print(f"\nLow budget films (<$1M): {len(low_budget)}, have an average revenue of: ${low_budget['revenue'].mean()/1e6} M")
+print(f"\nLow budget films (<$1M): {len(low_budget)}, average revenue: ${low_budget['revenue'].mean()/1e6} M")
 print(f"Mid budget films ($1M - $50M): {len(mid_budget)}, average revenue: ${mid_budget['revenue'].mean()/1e6} M")
 print(f"High budget films (> $50M): {len(high_budget)}, average revenue: ${high_budget['revenue'].mean()/1e6} M")
 
-# Before going on with the next analysis is it better to understand the distribution of profitable and unprofitable films in the dataset
-# just to have a clearer view of the dataset structure for this part
+# Visualization of the distribution of profitable vs unprofitable films to understand
+# the dataset structure before the profitability analysis
 
-# PIE CHART OF THE DISTRIBUTION OF PROFITABLE AND UNPROFITABLE FILMS:
-# first we visualize thorugh a pie chart the proportions of profitable and non profitable films present in the dataset
-# just to add comprehend better this part of the dataset
+# --------------------------------------------------------------------------------------------------------------------------------
+# PIE CHART: PROFITABILITY DISTRIBUTION
+# --------------------------------------------------------------------------------------------------------------------------------
 plt.close('all')
 
 plt.figure(figsize = (10, 8))
@@ -444,10 +448,10 @@ plt.figure(figsize = (10, 8))
 # data that we will use for plotting also in the next analysis
 clean_profit_data = data[['budget', 'profit']].dropna()
 
-# prepare the data
+# Calculate profitability counts
 profitability_counts = clean_profit_data['profit'].apply(lambda x: 'Profitable' if x > 0 else 'Unprofitable').value_counts()
 
-# now we create the pie chart
+# creating the pie chart
 colors = ['lightblue', 'lightcoral']
 explode = (0.05, 0)     # this separates slightly the profitable slice of the pie chart
 
@@ -460,7 +464,7 @@ plt.pie(profitability_counts, labels = profitability_counts.index,
 
 plt.title('Film profitability distribution', fontsize = 14, fontweight = 'bold', pad = 20)
 
-# add count information as text
+# add summary statistics
 total = profitability_counts.sum()
 profitable_count = profitability_counts.get('Profitable', 0)
 unprofitable_count = profitability_counts.get('Unprofitable', 0)
@@ -471,7 +475,7 @@ plt.text(0, -1.3, f"Total films: {total} \nProfitable: {profitable_count} | Unpr
 plt.tight_layout()
 plt.show()
 
-# since we are searching for the blockbuster formula, in the next analysis we will focus only on profitable films
+# NOTE: since we are searching for the blockbuster formula, in the next analysis we will focus only on profitable films
 
 # -----------------------------------------------------------------------------------------------------------------------------------------------
 # 2) DOES THE BUDGET REALLY INFLUENCE THE SUCCESS OF A FILM? (BUDGET VS PROFIT) 
@@ -483,13 +487,13 @@ fig, (ax1, ax2) = plt.subplots(1, 2, figsize = (20, 8))
 
 # LEFT PLOT: budget vs profit scatter plot
 
-# we will analyze only profitable films for better visualization
+# Analysis of only profitable films for better visualization
 profitable = clean_profit_data[clean_profit_data['profit'] > 0]
 
 ax1.scatter(profitable['budget'], profitable['profit'],
             alpha = 0.5, color = 'seagreen', label = 'Profitable Movies', s = 20)
 
-# add trend line to the profit
+# adding trend line 
 log_budget_p = np.log10(profitable['budget'])
 log_profit = np.log10(profitable['profit'])
 
@@ -515,7 +519,7 @@ ax1.set_title('Budget vs Profit: Investment returns in filmmaking industry?',
 ax1.legend(fontsize = 10, loc = 'upper left')
 ax1.grid(True, alpha = 0.3)
 
-# exlude extreme negatives for better visualization
+# Exclude extreme negatives for better visualization
 ax1.set_ylim(1e3, 1e9)
 
 # RIGHT PLOT: Average profit by budget category (bar plot)
@@ -564,7 +568,7 @@ plt.show()
 
 # The analysis reveals that higher budgets increase profit with diminishing returns (slope = 0.60). High - budget
 # films average $177.9 M profit compared to $47.1 M for mid - budget and $19.7 M for low - budget films. However, the
-# wide scatter demonstrates that budget alone doesn't guarantee success - creative and timing matter equally.
+# wide scatter demonstrates that budget alone doesn't guarantee success-creativity and timing matter equally.
 
 # -----------------------------------------------------------------------------------------------------------------------------------------------
 # 3) DO BETTER RATED MOVIES MAKE MORE MONEY (VOTE AVERAGE (RATING) VS REVENUE) 
@@ -572,10 +576,10 @@ plt.show()
 
 plt.close('all')
 
- # so, first we prepare the data for the visualization
+ # So, first we prepare the data for the visualization
 rating_revenue = data[['vote_average', 'revenue']].dropna()
 
-# identify blockbusters (high revenue films) for visualization
+# Identify blockbusters (high revenue films) for visualization
 Q1 = rating_revenue['revenue'].quantile(0.25)
 Q3 = rating_revenue['revenue'].quantile(0.75)
 IQR = Q3 - Q1
@@ -583,7 +587,7 @@ blockbuster_threshold = Q3 + 1.5 * IQR
 
 rating_revenue['is_blockbuster'] = rating_revenue['revenue'] > blockbuster_threshold
 
-# this is be the function that categorize the ratings
+# Function to categorize ratings
 def categorize_ratings(rating):
     if rating < 5.0:
         return 'Poor\n(<5.0)'
@@ -594,10 +598,10 @@ def categorize_ratings(rating):
     else:
         return 'Excellent\n(>= 7.5)'
     
-# visualization
+# Visualization
 fig, (ax1, ax2) = plt.subplots(1, 2, figsize = (20, 8))
 
-# LEFT PLOT: Scatterplot 
+# LEFT PLOT: Scatter plot 
 ax1.scatter(rating_revenue['vote_average'],
             rating_revenue['revenue'],
             alpha = 0.5,
@@ -607,7 +611,7 @@ ax1.scatter(rating_revenue['vote_average'],
             linewidth = 1,
             label = 'All movies')
 
-# now we highlight blockbusters
+# Highlighting blockbusters
 blockbusters = rating_revenue[rating_revenue['is_blockbuster']]
 ax1.scatter(blockbusters['vote_average'],
             blockbusters['revenue'],
@@ -619,13 +623,13 @@ ax1.scatter(blockbusters['vote_average'],
             marker = '*',
             label = f"Blockbuster (n = {len(blockbusters)})")
 
-# then we add a trend line inside the scatter plot
+# Adding trend line to the plot
 z = np.polyfit(rating_revenue['vote_average'],
                    np.log10(rating_revenue['revenue']), 1)
 p_all = np.poly1d(z)
 
 vote_range = np.linspace(0, 10, 100)
-trend = 10 ** p(vote_range)
+trend = 10 ** p_all(vote_range)
 
 ax1.plot(vote_range, trend,
          color = 'darkgreen', linewidth = 2.5, linestyle = '--',
@@ -641,12 +645,12 @@ ax1.grid(True, alpha = 0.3)
 
 # calculate and display correlation
 correlation = rating_revenue['vote_average'].corr(rating_revenue['revenue'])
-ax1.text(0.05, 0.95, f"Correlation: {correlation:.3f}\n = {len(rating_revenue)}",
+ax1.text(0.05, 0.95, f"Correlation: {correlation:.3f}\nn = {len(rating_revenue)}",
          transform = ax1.transAxes, fontsize = 11,
          verticalalignment = 'top',
          bbox = dict(boxstyle = 'round', facecolor = 'lightblue', alpha = 0.8))
 
-# RIGHT PLOT:  BAR PLOT about average revenue by category --------
+# RIGHT PLOT:  BAR PLOT 
 rating_revenue['category'] = rating_revenue['vote_average'].apply(categorize_ratings)
 category_order = ['Poor\n(<5.0)', 'Average\n(5.0 - 6.5)', 'Good\n(6.5 - 7.5)', 'Excellent\n(>= 7.5)']
 
@@ -668,7 +672,7 @@ ax2.set_xlabel('Rating Category', fontsize = 12, fontweight = 'bold')
 ax2.set_ylabel('Average revenue ($ Millions)', fontsize = 12, fontweight = 'bold')
 ax2.set_title('Average revenue by Rating category', fontsize = 13, fontweight = 'bold')
 
-fig.suptitle('Rating vs Revenue (data with outliers)',
+fig.suptitle('Rating vs Revenue',
              fontsize = 16, fontweight = 'bold', y = 0.98)
 
 plt.tight_layout(rect = [0.02, 0, 1, 0.96])
@@ -684,19 +688,19 @@ plt.show()
 # 4) IS THERE AN OPTIMAL MOVIE LENGTH FOR BOX OFFICE SUCCESS? 
 # -----------------------------------------------------------------------------------------------------------------------------------------------
 
-plt.close ('all')
+plt.close('all')
 
-# prepare the clean data for plotting
-runtime_revenue = data [['runtime', 'revenue']].dropna()
+# Prepare the clean data for plotting
+runtime_revenue = data[['runtime', 'revenue']].dropna()
 
-# Identify the blockbusters
+# Identify blockbusters
 blockbuster_threshold = runtime_revenue['revenue'].quantile(0.90)
 runtime_revenue['is_blockbuster'] = runtime_revenue['revenue'] >= blockbuster_threshold
 
 print (f"\nBlockbusters (top 10% revenue): {runtime_revenue['is_blockbuster'].sum()}")
 print (f"Blockbuster threshold: ${blockbuster_threshold/1e6:.1f}M")
 
-# create runtime categories
+# Create runtime categories
 def categorize_runtime(runtime):
     if runtime < 90:
         return 'Short\n(<90 min)'
@@ -712,7 +716,7 @@ runtime_revenue['runtime_category'] = runtime_revenue['runtime'].apply(categoriz
 # Visualization
 fig, (ax1, ax2) = plt.subplots(1, 2, figsize = (20, 8))
 
-# LEFT PLOT: Scatterplot
+# LEFT PLOT: Scatter plot
 regular_movies = runtime_revenue[~runtime_revenue['is_blockbuster']]
 blockbusters = runtime_revenue[runtime_revenue['is_blockbuster']]
 
@@ -725,7 +729,7 @@ ax1.scatter(regular_movies['runtime'],
             linewidth = 0.5,
             label = 'All movies')
 
-# now we highlight the blockbusters in the plot
+# Now we highlight the blockbusters in the plot
 ax1.scatter(blockbusters['runtime'],
             blockbusters['revenue'],
             alpha = 0.7,
@@ -749,7 +753,7 @@ ax1.plot(runtime_range, trend_runtime,
          color = 'darkgreen', linewidth = 2.5, linestyle = '--',
          label = f"Trend (slope = {z_runtime[0]:.3f})")
 
-# vertical lines for categories boundaries
+# Vertical lines for categories boundaries
 ax1.axvline(x = 90, color = 'orange', linestyle = ':', linewidth = 1.5, alpha = 0.6)
 ax1.axvline(x = 120, color = 'orange', linestyle = ':', linewidth = 1.5, alpha = 0.6)
 ax1.axvline(x = 150, color = 'orange', linestyle = ':', linewidth = 1.5, alpha = 0.6)
@@ -760,9 +764,9 @@ ax1.set_ylabel('Revenue ($)', fontsize = 12, fontweight = 'bold')
 ax1.set_title('Scatter plot: Runtime vs Revenue', fontsize = 13, fontweight = 'bold')
 ax1.grid(True, alpha = 0.3)
 
-# correlation
+# Calculation of the correlation
 correlation_runtime = runtime_revenue['runtime'].corr(runtime_revenue['revenue'])
-ax1.text(0.05, 0.05, f'Correlation: {correlation_runtime:.3f}\n = {len(runtime_revenue)}',
+ax1.text(0.05, 0.05, f'Correlation: {correlation_runtime:.3f}\nn = {len(runtime_revenue)}',
          transform = ax1.transAxes, fontsize = 11,
          verticalalignment = 'bottom',
          horizontalalignment = 'center',
@@ -802,7 +806,7 @@ plt.show()
 
 # Statistical analysis: 
 
-# correlation strength interpretation
+# Correlation strength interpretation
 if correlation_runtime < 0.3:
     strength = "weak"
 elif correlation_runtime < 0.7:
@@ -812,7 +816,7 @@ else:
 
 print (f"This indicates a {strength} positive relationship")
 
-# now, we analyze the optimal runtime based on the data we have by analyzing the revenue by 15 minute bins
+# Now, we analyze the optimal runtime based on the data we have by analyzing the revenue by 15 minute bins
 runtime_bins = pd.cut(runtime_revenue['runtime'],
                       bins = range (40, 305, 15),
                       labels = [f"{i} - {i+15}" for i in range (40, 290, 15)])
@@ -822,11 +826,11 @@ bin_analysis = runtime_revenue.groupby('runtime_bin', observed = True)['revenue'
 bin_analysis = bin_analysis[bin_analysis['count'] >= 20]
 bin_analysis_sorted = bin_analysis.sort_values('mean', ascending = False)
 
-# top 5 most profitable runtime ranges
+# Top 5 most profitable runtime ranges
 for i, (bin_name, row) in enumerate (bin_analysis_sorted.head().iterrows(), 1):
     print (f"{i}. {bin_name} min: Mean = ${row['mean']/1e6:>6,.1f}M, Median = ${row['median']/1e6:>6,.1f}M, n = {int(row['count']):>3}")
 
-# bottom 5 lowest revenue runtime ranges
+# Bottom 5 lowest revenue runtime ranges
 for i, (bin_name, row) in enumerate (bin_analysis_sorted.tail().iterrows(), 1):
     print (f"{i}. {bin_name} min: Mean = ${row['mean']/1e6:>6,.1f}M, Median = ${row['median']/1e6:>6,.1f}M, n = {int(row['count']):>3}")
 
@@ -846,7 +850,7 @@ print(f"Mean runtime: {regular_runtimes.mean().round()} minutes")
 print(f"Median runtime: {regular_runtimes.median().round()} minutes")
 print(f"Range: {regular_runtimes.min()} - {regular_runtimes.max()} minutes")
 
-# now we calculate also the revenues of the films by category of runtime
+# Now we calculate also the revenues of the films by category of runtime
 # - SHORT RUNTIME FILMS: They have an average revenue of 73 Million dollars
 short_avg= runtime_revenue[runtime_revenue['runtime_category'] == 'Short\n(<90 min)']['revenue'].mean()/1e6
 print(f"The average revenue for films of short runtime is: $ {short_avg.round()} M")
@@ -885,23 +889,23 @@ for i, (idx, row) in enumerate(shortest_movies.iterrows(), 1):
 # we have seen in previous analysis.
 
 # -------------------------------------------------------------------------------------------------------------------------------------------------------------
-# 5) DOOES HIGHER POPULARITY TRANSLATE TO HIGHER REVENUE? (POPULARITY VS REVENUE) 
+# 5) DOES HIGHER POPULARITY TRANSLATE TO HIGHER REVENUE? (POPULARITY VS REVENUE) 
 # -------------------------------------------------------------------------------------------------------------------------------------------------------------
 plt.close('all')
 
-# prepare as always the data for the plotting
+# Prepare data for the plotting
 popularity_revenue = data[['popularity', 'revenue']].dropna()
 
 fig, (ax1, ax2) = plt.subplots(1, 2, figsize = (20, 8))
 
-# identify blockbusters using the same approach as before
+# Identify blockbusters using the same approach as before
 blockbuster_threshold = popularity_revenue['revenue'].quantile(0.90)
 popularity_revenue['is_blockbuster'] = popularity_revenue['revenue'] >= blockbuster_threshold
 
 print(f"\nBlockbusters (top 10% revenue): {popularity_revenue['is_blockbuster'].sum()}")
 print(f"Blockbusters threshold: ${blockbuster_threshold/1e6:.1f}M")
 
-# popularity categories
+# Popularity categories
 def categorize_popularity (popularity):
     if popularity < 5:
         return 'Low\n(<5)'
@@ -927,7 +931,7 @@ ax1.scatter(regular_movies['popularity'],
             linewidth = 0.5,
             label = 'All movies')
 
-# highlight blockbusters
+# Highlight blockbusters
 ax1.scatter(blockbusters['popularity'],
             blockbusters['revenue'],
             alpha = 0.7,
@@ -938,7 +942,7 @@ ax1.scatter(blockbusters['popularity'],
             marker = '*',
             label = f"Blockbusters (n = {len(blockbusters)})")
 
-# trend line
+# Trend line
 z_pop = np.polyfit(np.log10(popularity_revenue['popularity'] + 1),
                    np.log10(popularity_revenue['revenue']), 1)
 p_pop = np.poly1d(z_pop)
@@ -952,7 +956,7 @@ ax1.plot(pop_range, trend_pop, color = 'darkgreen',
          linewidth = 2.5, linestyle = '--',
          label = f"Trend (slope = {z_pop[0]:.2f})")
 
-# vertical lines for category boundaries
+# Vertical lines for category boundaries
 ax1.axvline(x = 5, color = 'orange', linestyle = ':', linewidth = 1.5, alpha = 0.6)
 ax1.axvline(x = 15, color = 'orange', linestyle = ':', linewidth = 1.5, alpha = 0.6)
 ax1.axvline(x = 30, color = 'orange', linestyle = ':', linewidth = 1.5, alpha = 0.6)
@@ -964,9 +968,9 @@ ax1.set_ylabel('Revenue ($)', fontsize = 12, fontweight = 'bold')
 ax1.set_title('Scatter plot: Popularity vs Revenue', fontsize = 13, fontweight = 'bold')
 ax1.grid(True, alpha = 0.3)
 
-# correlation
+# Calculare correlation
 correlation_pop = popularity_revenue['popularity'].corr(popularity_revenue['revenue'])
-ax1.text(0.05, 0.95, f"Correlation: {correlation_pop:.3f}\n = {len(popularity_revenue)}",
+ax1.text(0.05, 0.95, f"Correlation: {correlation_pop:.3f}\nn = {len(popularity_revenue)}",
          transform = ax1.transAxes, fontsize = 11,
          verticalalignment = 'top',
          bbox = dict(boxstyle = 'round', facecolor = 'lightblue', alpha = 0.9,
@@ -983,7 +987,7 @@ colors_pop = ['lightcoral', 'orange', 'yellow', 'green']
 bars = ax2.bar(category_order, avg_revenue_pop, color = colors_pop, alpha = 0.8,
                edgecolor = 'black', linewidth = 1.5)
 
-# bar plot labels
+# Bar plot labels
 for bar in bars:
     height = bar.get_height()
     ax2.text(bar.get_x() + bar.get_width()/2., height,
@@ -993,8 +997,6 @@ ax2.set_xlabel('Popularity Category', fontsize = 12, fontweight = 'bold')
 ax2.set_ylabel('Average Revenue ($ Millions)', fontsize = 12,fontweight = 'bold')
 ax2.set_title('Bar Plot: Average Revenue by popularity', fontsize = 13, fontweight = 'bold')
 ax2.grid(True, alpha = 0.3, axis = 'y')
-
-# figure title
 fig.suptitle('Popularity vs Revenue: Does Buzz Equal box office success?',
              fontsize = 16, fontweight = 'bold', y = 0.98)
 
@@ -1002,18 +1004,18 @@ plt.tight_layout(rect = [0.02, 0, 1, 0.96])
 plt.show()
 
 # INSIGHTS
-# Unlike previous analysis of budget, rating, and runtime, popularity represents a fundamentally different metric that captures marketing reach,
+# Unlike previous analyses of budget, rating, and runtime, popularity represents a fundamentally different metric that captures marketing reach,
 # social media buzz, star power and audience anticipation before and during a film's release.
 # FINDINGS:
-# - the correlation coefficient of 0.401 represents a moderate positive relationship between popularity and revenue, in respect of the previous ones. So, popularity for now,
-#   is one of the strongest single predictor of commercial success among the variables aalyzed. 
+# - The correlation coefficient of 0.401 represents a moderate positive relationship between popularity and revenue, in comparison to the previous ones. So, popularity for now,
+#   is one of the strongest single predictors of commercial success among the variables analyzed. 
 
 # THE BLOCKBUSTER CONCENTRATION EFFECT
-# - the scatter plot visualzation reveals that blockbusters (orange stars) are heavily concentrated in the high popularity regions of the plot.
-#   this concentration pattern indicates that popularity is not just correlated with revenue, its practically mostly a prerequisite for blockbuster success.
+# - the scatter plot visualization reveals that blockbusters (orange stars) are heavily concentrated in the high popularity regions of the plot.
+#   this concentration pattern indicates that popularity is not just correlated with revenue, it's practically a prerequisite for blockbuster success.
 # IMPLICATION:
-# Studios seeking blockbuster returns must invest in generating pre - release buzz and mantaining high visibility throughout the theatrical run. 
-# But the scatter also shows great variations meaning that while there is a mild/strong correlation between popularity and revenue, it is not always the case,
+# Studios seeking blockbuster returns must invest in generating pre-release buzz and maintaining high visibility throughout the theatrical run. 
+# But the scatter also shows great variations meaning that while there is a moderate correlation between popularity and revenue, it is not always the case,
 # so, the blockbuster effect is not always guaranteed.
 
 # -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -1023,15 +1025,15 @@ plt.show()
 # -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 plt.close('all')
 
-# prepare the data before plotting
+# Prepare the data before plotting
 decade_data = data[['decade', 'revenue', 'budget', 'vote_average', 'is_blockbuster']].dropna()
 
-# now, we filter for decades with sufficient data (50 in our case)
+# Now, we filter for decades with sufficient data (50 in our case)
 decade_counts = decade_data['decade'].value_counts()
 valid_decades = decade_counts[decade_counts >= 50].index
 decade_data = decade_data[decade_data['decade'].isin(valid_decades)]
 
-# decade statistics
+# Calculate decade statistics
 decade_stats = decade_data.groupby('decade').agg({
     'revenue': ['mean', 'count'],
     'budget': 'mean',
@@ -1119,7 +1121,7 @@ fig.suptitle('Industry evolution: How the blockbuster formula changed over time'
 plt.subplots_adjust(left = 0.08, right = 0.96, top = 0.92, bottom = 0.08, hspace = 0.45, wspace = 0.25)
 plt.show()
 
-# INSIGHTS:
+# INSIGHTS
 # - Revenue evolution by decade: average film revenue has grown consistently from $46M in the 1960s to $149M in the 2010s,
 #   representing almost a 224% increase. The most dramatic growth occurred from 1990 onwards, with 2010s showing the highest average
 #   revenue, reflecting the dominance of blockbuster tentpole films
@@ -1139,13 +1141,13 @@ plt.show()
 # -----------------------------------------------------------------------------------------------------------------------------------------------------------------------
 plt.close('all')
 
-# data for plot
+# Prepare the data for plotting 
 seasonal_data = data[['release_season', 'release_month', 'revenue', 'is_blockbuster']].dropna()
 
-# create the figure
-fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots (2, 2, figsize = (18, 12))
+# Create the figure
+fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize = (18, 12))
 
-# seasonal statistics
+# Calculate seasonal statistics
 season_stats = seasonal_data.groupby('release_season').agg({
     'revenue': ['mean', 'median', 'count'],
     'is_blockbuster': lambda x: (x.sum() / len(x) * 100) if len(x) > 0 else 0
@@ -1155,7 +1157,7 @@ season_stats.columns = ['season', 'avg_revenue', 'median_revenue', 'count', 'blo
 season_stats['avg_revenue'] = season_stats['avg_revenue'] / 1e6
 season_stats['median_revenue'] = season_stats['median_revenue'] / 1e6
 
-# monthly statistics
+# Calculate monthly statistics
 monthly_stats = seasonal_data.groupby('release_month').agg({
     'revenue': 'mean',
     'is_blockbuster': lambda x: (x.sum() / len(x) * 100) if len(x) > 0 else 0
@@ -1164,11 +1166,9 @@ monthly_stats = seasonal_data.groupby('release_month').agg({
 monthly_stats.columns = ['month', 'avg_revenue', 'blockbuster_rate']
 monthly_stats['avg_revenue'] = monthly_stats['avg_revenue'] / 1e6
 
-# month names for better visualization
+# Creating month names for better visualization
 month_names = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 monthly_stats['month_name'] = monthly_stats['month'].apply(lambda x: month_names[int(x) - 1])
-
-# Release time analysis
 
 # PLOT 1: Average revenue by season
 season_order = ['Winter', 'Spring', 'Summer', 'Fall']
@@ -1264,21 +1264,25 @@ print (f"Peak month: {best_month['month_name']} (${best_month['avg_revenue']:.1f
 most_releases = season_stats_ordered.loc[season_stats_ordered['count'].idxmax()]
 print (f"Most releases: {most_releases['season']} ({int(most_releases['count'])} films)")
 
-# INSIGHTS
-# Release timing significantly impacts box office performance. Summer consistently dominates as a blockbuster season, with studios strategically releasing their biggest films during school vacation periods when families and teenagers have maximum availability. 
-# The 'summer blockbuster' phenomenon is real, these months generate substantially higher revenues and blockbuster rates than other season. Winter (holiday season) typically ranks second, capitalizing on Christmas
-# and New Year audiences. Spring and Fall serve as "dump months" for lower budget films and counter programming, showing notably lower revenues. This seasonal pattern drives studios' release calendars and explains why tentpole films are rarely released 
-# in February or September
+# Release timing significantly impacts box office performance. Summer leads in average revenue 
+# ($127.6M), while Spring achieves the highest blockbuster rate (13.8%), both benefiting from 
+# strategic release windows—Summer capitalizes on school vacations, while Spring captures the 
+# pre-summer corridor and holiday periods like Easter. The 'summer blockbuster' phenomenon remains 
+# real, though Spring has emerged as an equally viable season for tentpole releases. Winter (holiday 
+# season) ranks third, capitalizing on Christmas and New Year audiences. Fall serves as the primary 
+# "dump month" for lower-budget films and counterprogramming, showing notably lower revenues ($87.5M) 
+# and blockbuster rates (7.5%). This seasonal pattern drives studios' release calendars and explains 
+# why tentpole films are rarely released in September (lowest month at $54M).
 
 # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 # 8) DOES THE GENRE OF A FILM INFLUENCE ITS SUCCESS AND WHICH GENRES DOMINATE THE BOX OFFICE? 
 # ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 plt.close('all')
 
-# data for plotting
+# Prepare data for plotting
 genre_data = data[['primary_genre', 'revenue', 'popularity', 'is_blockbuster', 'vote_average']].dropna()
 
-# genre statistics
+# Calculate genre statistics
 genre_stats = genre_data.groupby('primary_genre').agg({
     'revenue': ['mean', 'count'],
     'popularity': 'mean',
@@ -1292,10 +1296,10 @@ genre_stats['avg_revenue'] = genre_stats['avg_revenue'] / 1e6
 # filtering genres with at least 50 films for statistical significance
 genre_stats = genre_stats[genre_stats['count'] >= 50].copy()
 
-# sorting by average revenue for better visualization
+# Sorting by average revenue for better visualization
 genre_stats_sorted = genre_stats.sort_values('avg_revenue', ascending = False)
 
-# genre analysis visualization
+# Genre analysis visualization
 fig = plt.figure(figsize = (22, 17))
 gs = fig.add_gridspec(2, 2, hspace = 0.5, wspace = 0.3, left = 0.10, right = 0.96, top = 0.93, bottom = 0.08)
 
@@ -1310,7 +1314,7 @@ print(top_revenue_genres)
 bars1 = ax1.barh(range(len(top_revenue_genres)), top_revenue_genres['avg_revenue'],
                  color = 'steelblue', alpha = 0.8, edgecolor = 'black', linewidth = 1.5)
 
-# now, we highlight the top genre
+# highlight the top genre
 bars1[0].set_color('red')
 bars1[0].set_edgecolor('darkred')
 bars1[0].set_linewidth(2.5)
@@ -1419,10 +1423,10 @@ plt.show()
 
 # INSIGHTS:
 # As we can see from the resulting plots, the genre of a film largely contributes to the commercial success of a film. Family films lead in revenue ($257.3 Million on average), followed
-# by Animation ($241.9 Million avg) and adventure ($223.1 Million avg), demonstrating that family friendly, spectacle driven content dominates box offices. Animation shows the highest 
+# by Animation ($241.9 Million avg) and Adventure ($223.1 Million avg), demonstrating that family friendly, spectacle driven content dominates box offices. Animation shows the highest 
 # blockbuster rate (32.9 %), with Adventure (29.4%) and family (28.8 %) close behind, confirming these genres are the safest bets for blockbuster success. Family films also top popularity
 # scores (27.3), validating their broad audience appeal. The bubble chart (plot 4) reveals that while drama is the most produced genre, it generates low revenues and blockbuster rates, highlighting Hollywood's 
-# strategic shift toward high - budget franchise genres (Animation, Adventure, Sci-fi) over dramatic storytelling. Genre choice is then a critical success factor, studios prioritize spectacle and family appeal
+# strategic shift toward high-budget franchise genres (Animation, Adventure, Sci-fi) over dramatic storytelling. Genre choice is then a critical success factor, studios prioritize spectacle and family appeal
 # over artistic merit to maximize their commercial returns.
 
 # ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -1499,7 +1503,7 @@ for i, (idx, row) in enumerate(top_countries_revenue.iterrows()):
     
 ax1.set_xlabel('Average revenue ($ Millions)', fontsize = 12, fontweight = 'bold')
 ax1.set_ylabel('Country', fontsize = 12, fontweight = 'bold')
-ax1.set_title('Top 12 Countries by average revenue', fontsize = 14, fontweight = 'bold', pad = 20)
+ax1.set_title('Top Countries by average revenue', fontsize = 14, fontweight = 'bold', pad = 20)
 ax1.invert_yaxis()
 ax1.grid(True, alpha = 0.3, axis = 'x')
 ax1.set_xlim(0, max(top_countries_revenue['avg_revenue']) * 1.25)
@@ -1523,7 +1527,7 @@ for i, (idx, row) in enumerate(top_countries_blockbuster.iterrows()):
 
 ax2.set_xlabel('Blockbuster rate (%)', fontsize = 12, fontweight = 'bold')
 ax2.set_ylabel('Country', fontsize = 12, fontweight = 'bold')
-ax2.set_title('Top 12 Countries by blockbuster rate', fontsize = 14, fontweight = 'bold', pad = 20)
+ax2.set_title('Top Countries by blockbuster rate', fontsize = 14, fontweight = 'bold', pad = 20)
 ax2.invert_yaxis()
 ax2.grid(True, alpha = 0.3, axis = 'x')
 ax2.set_xlim(0, max(top_countries_blockbuster['blockbuster_rate']) * 1.20)
@@ -1606,9 +1610,9 @@ print(f"\nMost blockbuster prone Country: {top_blockbuster_country['country']}")
 print(f"Blockbuster Rate: {top_blockbuster_country['blockbuster_rate'].round()}%")
 print(f"Average revenue: ${top_blockbuster_country['avg_revenue'].round()}M")
 
-# it results to be that the best country for blockbuster rate is United kingdom followed by the United states, probably United kingdom
-# comes before the USA because it counts some films that are co - produced by both US and UK (like Harry Potter, James Bond and so on), 
-# so the top blockbuster countries are in general english speaking countries.
+# The United Kingdom leads in blockbuster rate followed by the United states, probably United kingdom
+# comes before the USA because it counts some films that are co-produced by both US and UK (like Harry Potter, James Bond and so on), 
+# so the top blockbuster countries are in general English-speaking countries.
 
 # Top company
 top_company = company_stats_sorted.iloc[0]
@@ -1617,26 +1621,33 @@ print(f"Blockbuster Rate: {top_company['blockbuster_rate'].round()}%")
 print(f"Average revenue: ${top_company['avg_revenue'].round()}M")
 print(f"Films produced: {int(top_company['count'])}")
 
-# the leading company in blockbuster film production is Lucas film, with a blockbuster rate of 60% and an average revenue of 494 Millions
-# of dollars even though it didn't produced so many films in comparison to other companies (20 films were produced by Lucasfilms).
+# the leading company in blockbuster film production is Lucasfilm, with a blockbuster rate of 60% and an average revenue of 494 Millions
+# of dollars even though it didn't produce so many films in comparison to other companies (20 films were produced by Lucasfilms).
 
 # ------------------------------------------------------------------------------------------------------------------------------------------------------
-# CONCLUSIONS: 
-# IS THERE A BLOCKBUSTER FORMULA FOR SUCCESS?
+# CONCLUSIONS: IS THERE A BLOCKBUSTER FORMULA FOR SUCCESS?
 # ------------------------------------------------------------------------------------------------------------------------------------------------------
 
-# After the analysis conducted, the data reveals that there is NO guaranteed formula for blockbuster success, but there are some patterns 
-# within the data that can increase the likelihood of a film to become a blockbuster success. Successful blockbusters typically combine:
+# After the analysis conducted, the data reveals that there is NO guaranteed formula for 
+# blockbuster success, but certain patterns can significantly increase the likelihood of a film 
+# becoming a blockbuster. Successful blockbusters typically combine:
 
-# - high budgets ($ 50M +) that enable spectacle and star power
-# - family friendly genres (Animation, adventure, family)
-# - strategic summer or holiday releases
-# - longer runtimes (120-150 minutes)
-# - high pre-release marketing buzz (popularity)
-# - major studio backing
+# - High budgets ($50M+) that enable spectacle and star power
+# - Family-friendly genres (Animation, Adventure, Family)
+# - Strategic seasonal releases (Summer for revenue, Spring for blockbuster rate)
+# - Longer runtimes (120-150 minutes) signaling major studio investment
+# - High pre-release marketing buzz (popularity score)
+# - Major studio backing (especially Disney, Lucasfilm, DreamWorks)
+# - English-speaking production origins (US, UK lead in both revenue and blockbuster rates)
 
-# However, high variance at all budget levels proves that while these factors increase the probability of blockbuster success, exceptional 
-# creative execution, cultural timing and luck remain essential. The modern film industry operates on a "tentpole" strategy-fewer, bigger bets
-# on franchise ready spectacles during peak seasos with 78.3% of films profitable but only 10% achieving true blockbuster status. Ultimately, data 
-# can improve the opportunity for success, but cannot guarantee it, the magic and risk of cinema lie in that
-# irreducible uncertainty
+# However, high variance at all budget levels proves that while these factors increase the 
+# probability of blockbuster success, exceptional creative execution, cultural timing, and luck 
+# remain essential. Notably, critical acclaim (ratings) shows weak correlation with commercial 
+# success (r=0.116), demonstrating that quality alone doesn't guarantee box office performance. 
+# The modern film industry operates on a "tentpole" strategy—fewer, bigger bets on franchise-ready 
+# spectacles during peak seasons, with only approximately 10% of films achieving true blockbuster 
+# status (revenue ≥ $200M). Ultimately, data can increase the odds of success but cannot guarantee 
+# it. The magic and risk of cinema lie in that irreducible uncertainty.
+
+
+data.shape
