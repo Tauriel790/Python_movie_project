@@ -9,12 +9,13 @@ venv/
 # OS
 .DS_Store
 
-# Compreseed files
+# Compressed files
 *.zip
 
-# Output plotes
+# Output plots
 outputs/*.png
 
 # Allow data files
+data/*.csv
 !data/movies_metadata.csv
 !data/movies_with_features.csv
