@@ -3,6 +3,9 @@ Visualization module for movie dataset
 
 This module contains functions to create plots and charts
 for the blockbuster analysis
+
+Author: Legolas
+Date: 2024
 """
 
 import matplotlib.pyplot as plt
@@ -13,7 +16,21 @@ import math
 
 
 def plot_distribution_histograms(df, save_path=None):
-    """Create histograms for key variable distributions."""
+    """
+    Create histograms for key variable distributions
+    
+    Parameters:
+    -----------
+    df : pd.DataFrame
+        Input dataframe with distribution variables
+    save_path : str, optional
+        Path to save the figure
+    
+    Returns:
+    --------
+    matplotlib.figure.Figure
+        The created figure object
+    """
     plt.close('all')
     
     dist_variables = ['budget', 'revenue', 'profit', 'runtime',
@@ -56,7 +73,21 @@ def plot_distribution_histograms(df, save_path=None):
 
 
 def plot_distribution_density(df, save_path=None):
-    """Create density plots for key variable distributions."""
+    """
+    Create density plots for key variable distributions
+    
+    Parameters:
+    -----------
+    df : pd.DataFrame
+        Input dataframe with distribution variables
+    save_path : str, optional
+        Path to save the figure
+    
+    Returns:
+    --------
+    matplotlib.figure.Figure
+        The created figure object
+    """
     plt.close('all')
     
     dist_variables = ['budget', 'revenue', 'profit', 'runtime',
@@ -108,7 +139,21 @@ def plot_distribution_density(df, save_path=None):
 
 
 def plot_budget_vs_revenue(df, save_path=None):
-    """Create scatter plot of budget vs revenue with trend line."""
+    """
+    Create scatter plot of budget vs revenue with trend line
+    
+    Parameters:
+    -----------
+    df : pd.DataFrame
+        Input dataframe with budget and revenue columns
+    save_path : str, optional
+        Path to save the figure
+    
+    Returns:
+    --------
+    matplotlib.figure.Figure
+        The created figure object
+    """
     plt.close('all')
     fig = plt.figure(figsize=(12, 8))
     
@@ -146,7 +191,21 @@ def plot_budget_vs_revenue(df, save_path=None):
 
 
 def plot_profitability_pie(df, save_path=None):
-    """Create pie chart of profitable vs unprofitable films."""
+    """
+    Create pie chart of profitable vs unprofitable films
+    
+    Parameters:
+    -----------
+    df : pd.DataFrame
+        Input dataframe with budget and profit columns
+    save_path : str, optional
+        Path to save the figure
+    
+    Returns:
+    --------
+    matplotlib.figure.Figure
+        The created figure object
+    """
     plt.close('all')
     fig = plt.figure(figsize=(10, 8))
     
@@ -183,7 +242,21 @@ def plot_profitability_pie(df, save_path=None):
 
 
 def plot_budget_vs_profit(df, save_path=None):
-    """Create dual plot of budget vs profit analysis."""
+    """
+    Create dual plot of budget vs profit analysis
+    
+    Parameters:
+    -----------
+    df : pd.DataFrame
+        Input dataframe with budget and profit columns
+    save_path : str, optional
+        Path to save the figure
+    
+    Returns:
+    --------
+    matplotlib.figure.Figure
+        The created figure object
+    """
     plt.close('all')
     
     clean_profit_data = df[['budget', 'profit']].dropna()
@@ -261,7 +334,21 @@ def plot_budget_vs_profit(df, save_path=None):
 
 
 def plot_rating_vs_revenue(df, save_path=None):
-    """Create rating vs revenue analysis plots."""
+    """
+    Create rating vs revenue analysis plots
+    
+    Parameters:
+    -----------
+    df : pd.DataFrame
+        Input dataframe with vote_average and revenue columns
+    save_path : str, optional
+        Path to save the figure
+    
+    Returns:
+    --------
+    matplotlib.figure.Figure
+        The created figure object
+    """
     plt.close('all')
     
     rating_revenue = df[['vote_average', 'revenue']].dropna()
@@ -342,7 +429,7 @@ def plot_rating_vs_revenue(df, save_path=None):
     ax2.set_ylabel('Average Revenue ($ Millions)', fontsize=12, fontweight='bold')
     ax2.set_title('Average Revenue by Rating Category', fontsize=13, fontweight='bold')
     
-    fig.suptitle('Rating vs Revenue (data with outliers)',
+    fig.suptitle('Rating vs Revenue',
                  fontsize=16, fontweight='bold', y=0.98)
     
     plt.tight_layout(rect=[0.02, 0, 1, 0.96])
@@ -354,7 +441,21 @@ def plot_rating_vs_revenue(df, save_path=None):
 
 
 def plot_runtime_analysis(df, save_path=None):
-    """Create runtime vs revenue analysis plots."""
+    """
+    Create runtime vs revenue analysis plots
+    
+    Parameters:
+    -----------
+    df : pd.DataFrame
+        Input dataframe with runtime and revenue columns
+    save_path : str, optional
+        Path to save the figure
+    
+    Returns:
+    --------
+    matplotlib.figure.Figure
+        The created figure object
+    """
     plt.close('all')
     
     runtime_revenue = df[['runtime', 'revenue']].dropna()
@@ -443,7 +544,21 @@ def plot_runtime_analysis(df, save_path=None):
 
 
 def plot_popularity_analysis(df, save_path=None):
-    """Create popularity vs revenue analysis."""
+    """
+    Create popularity vs revenue analysis
+    
+    Parameters:
+    -----------
+    df : pd.DataFrame
+        Input dataframe with popularity and revenue columns
+    save_path : str, optional
+        Path to save the figure
+    
+    Returns:
+    --------
+    matplotlib.figure.Figure
+        The created figure object
+    """
     plt.close('all')
     
     popularity_revenue = df[['popularity', 'revenue']].dropna()
@@ -536,7 +651,21 @@ def plot_popularity_analysis(df, save_path=None):
 
 
 def plot_temporal_trends(df, save_path=None):
-    """Create temporal trends visualization by decade."""
+    """
+    Create temporal trends visualization by decade
+    
+    Parameters:
+    -----------
+    df : pd.DataFrame
+        Input dataframe with decade, revenue, budget columns
+    save_path : str, optional
+        Path to save the figure
+    
+    Returns:
+    --------
+    matplotlib.figure.Figure
+        The created figure object
+    """
     plt.close('all')
     
     decade_data = df[['decade', 'revenue', 'budget', 'vote_average', 'is_blockbuster']].dropna()
@@ -628,7 +757,21 @@ def plot_temporal_trends(df, save_path=None):
 
 
 def plot_seasonal_patterns(df, save_path=None):
-    """Create seasonal release patterns analysis."""
+    """
+    Create seasonal release patterns analysis
+    
+    Parameters:
+    -----------
+    df : pd.DataFrame
+        Input dataframe with release_season, revenue columns
+    save_path : str, optional
+        Path to save the figure
+    
+    Returns:
+    --------
+    matplotlib.figure.Figure
+        The created figure object
+    """
     plt.close('all')
     
     seasonal_data = df[['release_season', 'release_month', 'revenue', 'is_blockbuster']].dropna()
@@ -730,7 +873,21 @@ def plot_seasonal_patterns(df, save_path=None):
 
 
 def plot_genre_analysis(df, save_path=None):
-    """Create comprehensive 4-plot genre analysis matching original code."""
+    """
+    Create comprehensive 4-plot genre analysis
+    
+    Parameters:
+    -----------
+    df : pd.DataFrame
+        Input dataframe with primary_genre, revenue, popularity columns
+    save_path : str, optional
+        Path to save the figure
+    
+    Returns:
+    --------
+    matplotlib.figure.Figure
+        The created figure object
+    """
     plt.close('all')
     
     genre_data = df[['primary_genre', 'revenue', 'popularity', 'is_blockbuster', 'vote_average']].dropna()
@@ -870,7 +1027,21 @@ def plot_genre_analysis(df, save_path=None):
 
 
 def plot_production_origins(df, save_path=None):
-    """Create production country and company analysis with 4 plots."""
+    """
+    Create production country and company analysis with 4 plots
+    
+    Parameters:
+    -----------
+    df : pd.DataFrame
+        Input dataframe with countries_str, companies_str, revenue columns
+    save_path : str, optional
+        Path to save the figure
+    
+    Returns:
+    --------
+    matplotlib.figure.Figure
+        The created figure object
+    """
     plt.close('all')
     
     country_data = df[['countries_str', 'revenue', 'is_blockbuster', 'popularity']].dropna()
@@ -918,7 +1089,7 @@ def plot_production_origins(df, save_path=None):
     ax3 = fig.add_subplot(gs[1, 0])
     ax4 = fig.add_subplot(gs[1, 1])
     
-    # PLOT 1: Top 12 countries by average revenue
+    # PLOT 1: Top countries by average revenue
     top_countries_revenue = country_stats_sorted.head(12)
     bars1 = ax1.barh(range(len(top_countries_revenue)), top_countries_revenue['avg_revenue'],
                      color='green', alpha=0.8, edgecolor='black', linewidth=1.5)
@@ -936,12 +1107,12 @@ def plot_production_origins(df, save_path=None):
     
     ax1.set_xlabel('Average Revenue ($ Millions)', fontsize=12, fontweight='bold')
     ax1.set_ylabel('Country', fontsize=12, fontweight='bold')
-    ax1.set_title('Top 12 Countries by Average Revenue', fontsize=14, fontweight='bold', pad=20)
+    ax1.set_title('Top Countries by Average Revenue', fontsize=14, fontweight='bold', pad=20)
     ax1.invert_yaxis()
     ax1.grid(True, alpha=0.3, axis='x')
     ax1.set_xlim(0, max(top_countries_revenue['avg_revenue']) * 1.25)
     
-    # PLOT 2: Top 12 countries by blockbuster rate
+    # PLOT 2: Top countries by blockbuster rate
     top_countries_blockbuster = country_stats.nlargest(12, 'blockbuster_rate')
     bars2 = ax2.barh(range(len(top_countries_blockbuster)), top_countries_blockbuster['blockbuster_rate'],
                      color='orange', alpha=0.8, edgecolor='black', linewidth=1.5)
@@ -959,7 +1130,7 @@ def plot_production_origins(df, save_path=None):
     
     ax2.set_xlabel('Blockbuster Rate (%)', fontsize=12, fontweight='bold')
     ax2.set_ylabel('Country', fontsize=12, fontweight='bold')
-    ax2.set_title('Top 12 Countries by Blockbuster Rate', fontsize=14, fontweight='bold', pad=20)
+    ax2.set_title('Top Countries by Blockbuster Rate', fontsize=14, fontweight='bold', pad=20)
     ax2.invert_yaxis()
     ax2.grid(True, alpha=0.3, axis='x')
     ax2.set_xlim(0, max(top_countries_blockbuster['blockbuster_rate']) * 1.20)
@@ -1031,48 +1202,65 @@ def plot_production_origins(df, save_path=None):
 
 
 def generate_all_plots(df, output_dir='outputs'):
-    """Generate all visualization plots."""
+    """
+    Generate all visualization plots and save to directory
+    
+    Parameters:
+    -----------
+    df : pd.DataFrame
+        Fully processed dataframe with all features
+    output_dir : str, default='outputs'
+        Directory to save generated plots
+    
+    Returns:
+    --------
+    None
+        Saves all plots to specified directory
+    """
     import os
     os.makedirs(output_dir, exist_ok=True)
     
-    print("\nGenerating visualizations...")
-    print("-" * 80)
+    print("\n" + "="*80)
+    print("GENERATING VISUALIZATIONS")
+    print("="*80)
     
-    print("Creating distribution histograms...")
+    print("\n1. Creating distribution histograms...")
     plot_distribution_histograms(df, f"{output_dir}/distribution_histograms.png")
     
-    print("Creating distribution density plots...")
+    print("2. Creating distribution density plots...")
     plot_distribution_density(df, f"{output_dir}/distribution_density.png")
     
-    print("Creating Budget vs Revenue plot...")
+    print("3. Creating Budget vs Revenue plot...")
     plot_budget_vs_revenue(df, f"{output_dir}/budget_vs_revenue.png")
     
-    print("Creating Profitability pie chart...")
+    print("4. Creating Profitability pie chart...")
     plot_profitability_pie(df, f"{output_dir}/profitability_pie.png")
     
-    print("Creating Budget vs Profit plot...")
+    print("5. Creating Budget vs Profit plot...")
     plot_budget_vs_profit(df, f"{output_dir}/budget_vs_profit.png")
     
-    print("Creating Rating vs Revenue plot...")
+    print("6. Creating Rating vs Revenue plot...")
     plot_rating_vs_revenue(df, f"{output_dir}/rating_vs_revenue.png")
     
-    print("Creating Runtime analysis plot...")
+    print("7. Creating Runtime analysis plot...")
     plot_runtime_analysis(df, f"{output_dir}/runtime_analysis.png")
     
-    print("Creating Popularity analysis plot...")
+    print("8. Creating Popularity analysis plot...")
     plot_popularity_analysis(df, f"{output_dir}/popularity_analysis.png")
     
-    print("Creating Temporal trends plot...")
+    print("9. Creating Temporal trends plot...")
     plot_temporal_trends(df, f"{output_dir}/temporal_trends.png")
     
-    print("Creating Seasonal patterns plot...")
+    print("10. Creating Seasonal patterns plot...")
     plot_seasonal_patterns(df, f"{output_dir}/seasonal_patterns.png")
     
-    print("Creating Genre analysis plot...")
+    print("11. Creating Genre analysis plot...")
     plot_genre_analysis(df, f"{output_dir}/genre_analysis.png")
     
-    print("Creating Production origins plot...")
+    print("12. Creating Production origins plot...")
     plot_production_origins(df, f"{output_dir}/production_origins.png")
     
-    print("\nVisualization generation complete!")
+    print("\n" + "="*80)
+    print("VISUALIZATION GENERATION COMPLETE!")
     print(f"All plots saved in '{output_dir}/' directory")
+    print("="*80 + "\n")
