@@ -1,5 +1,8 @@
-pandas == 2.2.3
-numpy == 2.1.2
-matplotlib == 3.9.2
-seaborn == 0.13.2
-streamlit == 1.40.0
+# Anatomy of a Blockbuster - Movie Analysis Project
+# Python Version: 3.12.6
+
+pandas==2.2.3
+numpy==2.1.2
+matplotlib==3.9.2
+seaborn==0.13.2
+streamlit==1.51.0
