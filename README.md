@@ -26,14 +26,14 @@ The raw dataset contains over 45,000 films and includes:
 
 - Financial indicators (budget, revenue)
 - Audience and critic metrics (like vote counts, popularity)
-- Production detailes (genres, countries, companies ..)
-- Temporal attributes (runtime, release dates ..)
+- Production details (genres, countries, companies, etc.)
+- Temporal attributes (runtime, release dates, etc.)
 
 However, the raw file also contains:
 
 - Extensive missing values
 - JSON-formatted fields stored as text
-- Redundant or irrelevant variables (like id,    imdb_id ....)
+- Redundant or irrelevant variables (like id, imdb_id, etc.)
 - Outliers and structural inconsistencies
 - Non-numeric entries in numeric fields
 
@@ -45,12 +45,12 @@ A substantial cleaning process was required to obtain an analytically reliable v
 
 After data cleaning and feature engineering, the analytical dataset contains:
 
-### **Financial metrics**
+#### **Financial metrics**
 - Budget and revenue 
 - Profit (revenue - budget)
-- profitability indicator
+- Profitability indicator
 
-## **Temporal features**
+#### **Temporal features**
 - Release year, month and season
 - Decade classification
 
@@ -58,7 +58,7 @@ After data cleaning and feature engineering, the analytical dataset contains:
 - Parsed genres, production companies, production countries
 - Primary genre assignment
 
-### **Blockbuster indicator**
+#### **Blockbuster indicator**
 - Films in the top 10% of revenue distribution
 
 This version forms the basis of all analysis and powers the Streamlit dashboard.
@@ -67,7 +67,7 @@ This version forms the basis of all analysis and powers the Streamlit dashboard.
 
 ## Analytical Framework
 
-The investigation examines 9 dimensions that collectively shape films success:
+The investigation examines 9 dimensions that collectively shape film success:
 
 1. **Budget vs Revenue**: Does greater investment reliably produce higher returns?
 2. **Budget vs Profitability**: How efficiently do budget levels convert into profit?
@@ -97,7 +97,7 @@ Together, these findings indicate that while certain attributes increase the pro
 
 ## Streamlit Application
 
-As said before, the project includes an interactive Streamlit dashboard that provides:
+The project includes an interactive Streamlit dashboard that provides:
 
 - Visual exploration of all analytical dimensions
 - Filters by genre, decade, budget category and release season
@@ -106,8 +106,9 @@ As said before, the project includes an interactive Streamlit dashboard that pro
 
 To launch the app:
 
---bash
+```bash
 streamlit run app.py
+```
 
 You can also access the app from the following link:
 
@@ -117,5 +118,30 @@ You can also access the app from the following link:
 This project demonstrates that box office success arises from a complex interplay of financial, structural, temporal, and genre-related factors rather than from a single deterministic “blockbuster formula.” While high budgets, strong pre-release popularity, strategic release timing, and family-oriented or spectacle-driven genres consistently characterize the top-grossing films, none of these elements alone guarantees commercial success.
 
 Across the findings of the analysis, an important theme emerges: data can illuminate the conditions that make blockbuster success more likely, but cannot eliminate the inherent uncertainty of filmmaking. Creative resonance, cultural timing, competition, and external events remain unpredictable and fundamentally shape audience response.
+
+
+## Project Structure
+```
+/Python_movie_project
+│
+├── data/
+│   ├── movies_metadata.csv          # Raw dataset
+│   └── movies_with_features.csv     # Cleaned dataset
+│
+├── src/                              # Modular code (optional)
+│   ├── data_cleaning.py
+│   ├── feature_engineering.py
+│   ├── analysis.py
+│   └── visualization.py
+│
+├── outputs/                          # Generated visualizations
+│
+├── movie.py                          # Main analysis script
+├── app.py                            # Streamlit application
+├── test_pipeline.py                  # Pipeline testing
+├── requirements.txt                  # Python dependencies
+├── .gitignore
+└── README.md
+```
 
 
