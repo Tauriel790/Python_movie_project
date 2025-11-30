@@ -5,8 +5,6 @@ This module contains functions to load, clean, and prepare the movie
 metadata dataset for the analysis that will be conducted about the 
 Blockbuster formula.
 
-Author: Legolas
-Date: 2024
 """
 import pandas as pd
 import numpy as np

@@ -43,7 +43,15 @@ A substantial cleaning process was required to obtain an analytically reliable v
 
 ### **2. Cleaned Dataset - "movies_with_features.csv"**
 
-After data cleaning and feature engineering, the analytical dataset contains:
+### Key Dataset Statistics
+
+After cleaning and feature engineering, the analytical dataset contains:
+
+- **5,963 films** spanning 1915-2017
+
+- **2,963 profitable films** (78.3% profitability rate)
+
+- **438 blockbusters** (top 10% by revenue)
 
 #### **Financial metrics**
 - Budget and revenue 
@@ -128,7 +136,7 @@ Across the findings of the analysis, an important theme emerges: data can illumi
 │   ├── movies_metadata.csv          # Raw dataset
 │   └── movies_with_features.csv     # Cleaned dataset
 │
-├── src/                              # Modular code (optional)
+├── src/                              # Modular code
 │   ├── data_cleaning.py
 │   ├── feature_engineering.py
 │   ├── analysis.py

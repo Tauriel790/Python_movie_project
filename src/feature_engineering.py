@@ -4,8 +4,6 @@ Feature engineering module for movie dataset
 This module creates derived features for analysis including
 financial metrics, temporal features and blockbuster indicators
 
-Author: Legolas
-Date: 2024
 """
 
 import pandas as pd

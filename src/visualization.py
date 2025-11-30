@@ -4,8 +4,6 @@ Visualization module for movie dataset
 This module contains functions to create plots and charts
 for the blockbuster analysis
 
-Author: Legolas
-Date: 2024
 """
 
 import matplotlib.pyplot as plt

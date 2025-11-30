@@ -475,8 +475,6 @@ plt.text(0, -1.3, f"Total films: {total} \nProfitable: {profitable_count} | Unpr
 plt.tight_layout()
 plt.show()
 
-# NOTE: since we are searching for the blockbuster formula, in the next analysis we will focus only on profitable films
-
 # -----------------------------------------------------------------------------------------------------------------------------------------------
 # 2) DOES THE BUDGET REALLY INFLUENCE THE SUCCESS OF A FILM? (BUDGET VS PROFIT) 
 # -----------------------------------------------------------------------------------------------------------------------------------------------

@@ -4,8 +4,6 @@ Analysis module for movie dataset
 This module contains functions to perform statistical analysis
 on the movie dataset to identify blockbuster patterns
 
-Author: Legolas
-Date: 2024
 """
 
 import pandas as pd
