@@ -19,6 +19,61 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
+# Added Custom CSS for a more compact layout of the page
+st.markdown("""
+    <style>
+    /* Reduce padding in main container */
+    .block-container {
+        padding-top: 2rem;
+        padding-bottom: 2rem;
+        padding-left: 3rem;
+        padding-right: 3rem;
+        max-width: 100%;
+    }
+    
+    /* Compact plot sizing */
+    .stPlotlyChart, .stPyplot {
+        margin-top: 0.5rem;
+        margin-bottom: 0.5rem;
+    }
+    
+    /* Reduce spacing between elements */
+    .element-container {
+        margin-bottom: 0.5rem;
+    }
+    
+    /* Compact headers */
+    h1 {
+        margin-top: 1rem;
+        margin-bottom: 0.5rem;
+        font-size: 2.5rem;
+    }
+    
+    h2 {
+        margin-top: 0.8rem;
+        margin-bottom: 0.4rem;
+        font-size: 2rem;
+    }
+    
+    h3 {
+        margin-top: 0.6rem;
+        margin-bottom: 0.3rem;
+        font-size: 1.5rem;
+    }
+    
+    /* Compact metrics */
+    .stMetric {
+        padding: 0.5rem;
+    }
+    
+    /* Reduce plot figure sizes slightly */
+    div[data-testid="stImage"] > img {
+        max-width: 100%;
+        height: auto;
+    }
+    </style>
+""", unsafe_allow_html=True)
+
 # Custom CSS
 st.markdown("""
     <style>
