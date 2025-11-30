@@ -1646,6 +1646,3 @@ print(f"Films produced: {int(top_company['count'])}")
 # spectacles during peak seasons, with only approximately 10% of films achieving true blockbuster 
 # status (revenue ≥ $200M). Ultimately, data can increase the odds of success but cannot guarantee 
 # it. The magic and risk of cinema lie in that irreducible uncertainty.
-
-
-data.shape
