@@ -85,7 +85,7 @@ The investigation examines 9 dimensions that collectively shape film success:
 6. **Temporal Trends**: How have budgets, revenues and blockbuster rates changed by decade?
 7. **Seasonality of Release**: Do some seasons systematically yield higher-grossing films?
 8. **Genre Effects**: Which genres dominate in revenue and blockbuster prevalence?
-9. **Production Origins**: How do a country and company characteristics influence outcomes?
+9. **Production Origins**: How do country and company characteristics influence outcomes?
 
 Each of these 9 dimensions is supported by statistical summaries, visualization and interpretative commentary.
 
